@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSV naar Excel</title>
+<style>
+/* =====================================================================
+   CSV naar Excel — opmaak
+   Dezelfde vormtaal als de Referentie Tool: navy en geel dragen, cream is
+   het papier. Knoppen dragen hun betekenis in hun vulling; velden zijn
+   grijze vlakken die wit worden zodra je erin staat.
+   ===================================================================== */
+:root{
+  --navy:#25273A; --geel:#FFDF00; --cream:#EEE8E3;
+  --navy2:#666874; --navy3:#92939C; --navy4:#BEBEC4; --navy5:#D3D4D8; --navy6:#E9E9EB;
+  --inkt:#25273A; --zacht:#666874; --flauw:#92939C;
+  --lijn:rgba(37,39,58,.11); --lijn-sterk:rgba(37,39,58,.20);
+  --vlak:#F2F3F5; --papier:#EEE8E3; --wit:#FFFFFF;
+  --accent:#25273A; --accent-zacht:rgba(37,39,58,.07);
+  --goed:#2A7F45; --let:#B85300; --signaal:#CE181E; --teal:#238291;
+  --r-klein:8px; --r:12px; --r-groot:16px; --r-pil:980px;
+  --schaduw:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.05);
+  --schaduw-op:0 2px 6px rgba(0,0,0,.07),0 12px 32px rgba(0,0,0,.09);
+  --soepel:200ms cubic-bezier(.22,.61,.36,1);
+  --kophoogte:52px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--papier);color:var(--inkt);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable","Segoe UI",system-ui,"Helvetica Neue",sans-serif;
+  font-size:14px;line-height:1.47;letter-spacing:-.005em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+button,input,select,textarea{font:inherit;letter-spacing:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.verborgen{display:none!important}
+.tabnum{font-variant-numeric:tabular-nums}
+kbd{font:inherit;font-size:10.5px;background:var(--vlak);border-radius:4px;padding:1px 5px;color:var(--zacht);border:.5px solid var(--lijn)}
+
+/* ---------- knoppen ---------- */
+.k{font-size:13.5px;font-weight:500;padding:7px 14px;border-radius:var(--r-klein);cursor:pointer;border:0;background:var(--accent-zacht);color:var(--accent);
+  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;transition:background var(--soepel),transform var(--soepel),opacity var(--soepel),filter var(--soepel)}
+.k.vol{background:var(--accent);color:#fff}
+.k.stil{background:rgba(0,0,0,.05);color:var(--zacht)}
+.k:disabled{opacity:.4;cursor:not-allowed}
+.k:hover:not(:disabled){filter:brightness(1.06)}
+.k.stil:hover:not(:disabled){background:var(--navy6);color:var(--inkt);filter:none}
+.k.vol:hover:not(:disabled){filter:brightness(1.18)}
+.k:active:not(:disabled){transform:scale(.97)}
+.k svg{flex:0 0 auto}
+.k.cta{background:var(--geel);color:#000;font-weight:600;font-size:14px;padding:9px 18px;border-radius:11px;
+  box-shadow:0 1px 2px rgba(37,39,58,.18),0 6px 18px rgba(37,39,58,.14)}
+.k.cta:hover:not(:disabled){filter:none;background:#FFE733;box-shadow:0 1px 2px rgba(37,39,58,.2),0 8px 22px rgba(37,39,58,.18)}
+.k.cta:disabled{box-shadow:none}
+.mini{font-size:11.5px;padding:3.5px 10px;border:0;border-radius:var(--r-pil);background:rgba(0,0,0,.05);color:var(--zacht);cursor:pointer;white-space:nowrap;
+  transition:background var(--soepel),color var(--soepel)}
+.mini:hover:not(:disabled){background:var(--accent-zacht);color:var(--accent)}
+.mini:disabled{opacity:.45;cursor:not-allowed}
+.ikoonknop{width:32px;height:32px;border:0;border-radius:var(--r-pil);background:transparent;color:var(--zacht);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;transition:background var(--soepel),color var(--soepel)}
+.ikoonknop:hover{background:rgba(0,0,0,.06);color:var(--inkt)}
+.ikoonknop.klein{width:26px;height:26px}
+
+/* ---------- kop ---------- */
+.kop{background:rgba(255,255,255,.74);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:.5px solid var(--lijn);position:sticky;top:0;z-index:40;height:var(--kophoogte)}
+@supports not (backdrop-filter:blur(1px)){.kop{background:#fff}}
+.kopbinnen{height:100%;max-width:1440px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:14px}
+.merk{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--inkt);cursor:pointer;letter-spacing:-.015em;flex:0 0 auto;border:0;background:none;padding:4px 6px 4px 0}
+.vlag{width:24px;height:24px;display:block;flex:0 0 auto}
+.kopcontext{min-width:0;flex:1 1 auto;font-size:13px;color:var(--zacht);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kopcontext b{color:var(--inkt);font-weight:600}
+.kop .rechts{margin-left:auto;display:flex;gap:2px;align-items:center;flex:0 0 auto}
+.stand{font-size:12px;color:var(--zacht);margin-right:8px;white-space:nowrap;max-width:44ch;overflow:hidden;text-overflow:ellipsis}
+.stand.goed{color:var(--goed)} .stand.mis{color:var(--signaal)}
+
+/* ---------- schermen ---------- */
+.scherm{min-height:calc(100vh - var(--kophoogte));display:flex;flex-direction:column}
+.blad{width:100%;max-width:1440px;margin:0 auto;padding:18px 18px 24px;flex:1}
+.paneel{background:var(--wit);border-radius:var(--r-groot);box-shadow:var(--schaduw)}
+.paneelkop{display:flex;align-items:center;gap:10px;padding:14px 16px 0}
+.paneelkop h2{margin:0;font-size:14px;font-weight:600}
+.paneelkop .aantal{font-size:12px;color:var(--flauw)}
+.groepkop{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--flauw);font-weight:600;margin:0 0 10px}
+.groepkop .optioneel{text-transform:none;letter-spacing:0;font-weight:400}
+.voetbalk{position:sticky;bottom:0;z-index:20;background:rgba(238,232,227,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:.5px solid var(--lijn)}
+.voetbinnen{max-width:1440px;margin:0 auto;padding:10px 18px;display:flex;align-items:center;gap:10px}
+.voetbinnen .samen{font-size:12.5px;color:var(--zacht);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.voetbinnen .samen b{color:var(--inkt)}
+.voetbinnen .rest{margin-left:auto;display:flex;gap:8px;align-items:center;flex:0 0 auto}
+
+/* ---------- velden ---------- */
+.vld{margin-bottom:13px;min-width:0}
+.vld>label,.veldlabel{display:block;font-size:12px;font-weight:500;color:var(--zacht);margin-bottom:6px}
+.veldlabel .optioneel,.vld .optioneel{font-weight:400;color:var(--flauw)}
+.invoer,.vld input{width:100%;font-size:13.5px;padding:8px 11px;border:0;border-radius:var(--r-klein);background:var(--vlak);color:var(--inkt);
+  transition:box-shadow var(--soepel),background var(--soepel)}
+select.invoer{-webkit-appearance:none;appearance:none;cursor:pointer;padding-right:30px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23666874' stroke-width='3' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center}
+.invoer:focus,.vld input:focus{outline:0;background-color:var(--wit);box-shadow:0 0 0 3px var(--accent-zacht),0 0 0 1px var(--accent)}
+.invoer::placeholder,.vld input::placeholder{color:var(--navy4)}
+.invoer.kort{width:64px;text-align:right;padding:6px 9px}
+.eenheid{position:relative}
+.eenheid input{padding-right:46px}
+.eenheid span{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--flauw);pointer-events:none}
+.hint{font-size:11.5px;color:var(--flauw);line-height:1.45;margin-top:5px}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.segment{display:inline-flex;background:rgba(0,0,0,.05);border-radius:var(--r-pil);padding:2px;gap:2px;max-width:100%}
+.segment button{border:0;background:none;cursor:pointer;border-radius:var(--r-pil);padding:4px 12px;font-size:12.5px;font-weight:500;color:var(--zacht);white-space:nowrap;
+  transition:background var(--soepel),color var(--soepel),box-shadow var(--soepel)}
+.segment button:hover{color:var(--inkt)}
+.segment button.aan{background:var(--wit);color:var(--inkt);box-shadow:0 1px 3px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.04)}
+.segment.vol{display:flex;width:100%}
+.segment.vol button{flex:1;padding-left:6px;padding-right:6px}
+.keuzes{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:4px 10px;border-radius:var(--r-pil);cursor:pointer;border:0;background:rgba(0,0,0,.05);color:var(--zacht);white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px;transition:background var(--soepel),color var(--soepel)}
+.chip:hover{background:rgba(0,0,0,.09)}
+.chip.aan{background:var(--accent);color:#fff}
+.pvink{display:flex;gap:10px;align-items:flex-start;padding:6px;margin:0 -6px;border-radius:8px;cursor:pointer;font-size:13px}
+.pvink:hover{background:var(--vlak)}
+.pvink input{margin:2px 0 0;accent-color:var(--navy);width:15px;height:15px;flex:0 0 auto}
+.pvink b{display:block;font-weight:500}
+.pvink em{display:block;font-style:normal;font-size:11.5px;color:var(--flauw);line-height:1.4}
+
+/* ---------- startscherm ---------- */
+#s-start{align-items:center;justify-content:flex-start;padding:6vh 20px 40px}
+.start{width:min(600px,100%);display:flex;flex-direction:column;gap:18px}
+.amerk{display:flex;align-items:center;gap:11px;justify-content:center;margin-bottom:2px}
+.amerk .vlag{width:34px;height:34px}
+.awoord{font-size:19px;font-weight:600;letter-spacing:-.02em;color:var(--navy)}
+.akaart{width:100%;background:var(--wit);border-radius:20px;padding:28px 28px 22px;box-shadow:0 1px 2px rgba(37,39,58,.05),0 12px 36px rgba(37,39,58,.10)}
+.akaart h1{font-size:22px;font-weight:600;letter-spacing:-.022em;margin:0 0 5px}
+.aonder{color:var(--zacht);font-size:13.5px;line-height:1.5;margin:0 0 18px}
+.aregel{font-size:12px;color:var(--flauw);text-align:center;margin-top:14px}
+.uploadzone{border:1.5px dashed var(--navy5);border-radius:var(--r-groot);padding:34px 20px 30px;text-align:center;background:var(--wit);cursor:pointer;
+  transition:border-color var(--soepel),background var(--soepel)}
+.uploadzone:hover{border-color:var(--navy4)}
+.uploadzone.boven{border-color:var(--navy);background:#FFFDF0}
+.uploadzone h3{margin:10px 0 4px;font-size:15px}
+.uploadzone p{margin:0 0 14px;color:var(--flauw);font-size:12.5px}
+.kunnen{list-style:none;margin:0;padding:6px 0;background:var(--wit);border-radius:14px;box-shadow:var(--schaduw)}
+.kunnen li{display:flex;gap:11px;align-items:flex-start;padding:9px 16px;font-size:13px;border-top:.5px solid var(--lijn)}
+.kunnen li:first-child{border-top:0}
+.kunnen li b{font-weight:600}
+.kunnen li span.u{display:block;color:var(--flauw);font-size:12px}
+.kunnen .vk{width:18px;height:18px;border-radius:50%;background:#E4F2E8;color:var(--goed);flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;margin-top:1px}
+
+/* ---------- werkscherm ---------- */
+.werkraster{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start}
+.zijvak{position:sticky;top:calc(var(--kophoogte) + 14px);display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - var(--kophoogte) - 90px);overflow:auto;
+  padding-bottom:4px;scrollbar-width:thin}
+.hoofdvak{display:flex;flex-direction:column;gap:14px;min-width:0}
+.instvak{padding:14px 16px 12px}
+.instvak .rij{margin-bottom:13px}
+.instvak .rij.naast{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.instvak .pvink{margin-bottom:4px}
+.bestandlijst{list-style:none;margin:10px 0 0;padding:0 6px 4px}
+.bestand{display:flex;align-items:center;gap:9px;padding:8px 6px 8px 8px;border-radius:10px;cursor:pointer;transition:background 120ms linear}
+.bestand:hover{background:var(--vlak)}
+.bestand.aan{background:var(--vlak);box-shadow:inset 3px 0 0 var(--geel)}
+.bicoon{width:30px;height:34px;border-radius:5px;background:var(--navy);color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.04em;display:flex;align-items:flex-end;justify-content:center;
+  padding-bottom:5px;flex:0 0 auto;position:relative;overflow:hidden}
+.bicoon::before{content:"";position:absolute;top:0;right:0;border-style:solid;border-width:0 9px 9px 0;border-color:transparent var(--papier) transparent transparent}
+.bestand.aan .bicoon::before{border-right-color:var(--vlak)}
+.binfo{flex:1;min-width:0}
+.binfo b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.binfo em{display:block;font-style:normal;font-size:11.5px;color:var(--flauw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bstaat{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:var(--goed)}
+.bstaat.let{background:var(--let)}
+.bestand .ikoonknop{opacity:0;transition:opacity var(--soepel)}
+.bestand:hover .ikoonknop,.bestand.aan .ikoonknop,.bestand .ikoonknop:focus-visible{opacity:1}
+.typeplus{display:flex;align-items:center;gap:8px;width:calc(100% - 12px);margin:2px 6px 8px;padding:8px 10px;border:1.5px dashed var(--navy5);border-radius:10px;
+  background:none;color:var(--zacht);font-size:13px;cursor:pointer;transition:border-color var(--soepel),color var(--soepel)}
+.typeplus:hover{border-color:var(--navy);color:var(--inkt)}
+
+.datakop{display:flex;align-items:center;gap:14px;padding:16px 18px 14px;flex-wrap:wrap}
+.datakop h2{margin:0;font-size:16px;font-weight:600;letter-spacing:-.015em;word-break:break-word}
+.datakop .onder{font-size:12.5px;color:var(--zacht)}
+.datacheck{padding:0 18px 16px}
+.datacheck ul{list-style:none;margin:0;padding:10px 12px;background:var(--vlak);border-radius:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:6px 20px;font-size:12px;color:var(--inkt)}
+.datacheck li{display:flex;gap:7px;align-items:flex-start;line-height:1.45}
+.datacheck li>span:nth-child(2){flex:1;min-width:0}
+.datacheck em{font-style:normal;color:var(--flauw)}
+.datacheck .dci{width:15px;height:15px;border-radius:50%;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;font-size:10px;font-weight:700}
+.datacheck li.ok .dci{background:#E4F2E8;color:var(--goed)}
+.datacheck li.let .dci{background:#FFF1D6;color:#8A4B00}
+.datacheck .mini{margin-left:6px;padding:1px 8px;vertical-align:1px;background:var(--wit)}
+.datacheck .mini:hover{background:var(--accent);color:#fff}
+
+.tabelpaneel{overflow:hidden;display:flex;flex-direction:column}
+.tabelbalk{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:.5px solid var(--lijn);flex-wrap:wrap}
+.tabelbalk .tel{font-size:12px;color:var(--flauw);margin-left:auto}
+.tabelbalk .knoppen{display:flex;gap:4px}
+.zoekvak{position:relative;flex:0 1 260px}
+.zoekvak .loep{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--flauw);pointer-events:none}
+.zoekvak input{width:100%;font-size:13px;padding:7px 11px 7px 31px;border:0;border-radius:var(--r-klein);background:var(--vlak);outline:0;transition:background var(--soepel),box-shadow var(--soepel)}
+.zoekvak input:focus{background:var(--wit);box-shadow:0 0 0 3px var(--accent-zacht),0 0 0 1px var(--accent)}
+.scrollvak{overflow:auto;height:calc(100vh - var(--kophoogte) - 236px);min-height:340px}
+.scrollvak::-webkit-scrollbar{height:12px;width:12px}
+.scrollvak::-webkit-scrollbar-thumb{background:var(--navy5);border-radius:10px;border:3px solid var(--wit)}
+.scrollvak::-webkit-scrollbar-thumb:hover{background:var(--navy4)}
+.scrollvak::-webkit-scrollbar-track{background:var(--vlak)}
+
+/* type-badges: kleur draagt de soort waarde */
+.tb{display:inline-flex;align-items:center;justify-content:center;min-width:27px;height:20px;padding:0 5px;border-radius:5px;font-size:10.5px;font-weight:700;letter-spacing:-.01em;
+  flex:0 0 auto;font-variant-numeric:tabular-nums;line-height:1}
+
+/* kolommen */
+.kolrij{display:grid;grid-template-columns:14px 18px 26px minmax(150px,1.1fr) 212px 92px minmax(0,1.5fr);gap:10px;align-items:center;
+  padding:8px 16px 8px 10px;border-bottom:.5px solid var(--lijn);background:var(--wit);position:relative}
+.kolrij.kolkop{position:sticky;top:0;z-index:3;background:#FAFAFB;font-size:10.5px;font-weight:600;color:var(--flauw);text-transform:uppercase;letter-spacing:.06em;padding-top:8px;padding-bottom:8px}
+.kolrij:not(.kolkop):hover{background:#FCFBF8}
+.kolrij.uit .kolnaam,.kolrij.uit .koltype,.kolrij.uit .kolgevuld,.kolrij.uit .kolvb,.kolrij.uit .kolextra{opacity:.42}
+.kolrij.sleept{opacity:.35}
+.kolrij.doel-boven::before,.kolrij.doel-onder::after{content:"";position:absolute;left:8px;right:8px;height:2px;background:var(--navy);border-radius:2px;z-index:2}
+.kolrij.doel-boven::before{top:-1px} .kolrij.doel-onder::after{bottom:-1px}
+.kolrij.licht{animation:licht 1.4s ease-out}
+@keyframes licht{0%,40%{background:#FFF8C2}100%{background:var(--wit)}}
+.greep{color:var(--navy4);cursor:grab;font-size:12px;line-height:1;letter-spacing:-2px;user-select:none;text-align:center}
+.kolaan input{accent-color:var(--navy);width:15px;height:15px;margin:0;display:block;cursor:pointer}
+.letter{font-size:11px;font-weight:600;color:var(--flauw);text-align:center;font-variant-numeric:tabular-nums}
+.kolnaam{min-width:0}
+.kolnaam input{padding:6px 9px;font-size:13px;font-weight:500}
+.was{font-size:11px;color:var(--flauw);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.koltype{display:flex;align-items:center;gap:6px;min-width:0}
+.koltype select{flex:1;min-width:0;font-size:12.5px;font-weight:500;padding:5px 26px 5px 10px;border:0;border-radius:var(--r-pil);background-color:var(--vlak);
+  -webkit-appearance:none;appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23666874' stroke-width='3' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center}
+.koltype select:focus{outline:0;box-shadow:0 0 0 2px var(--accent)}
+.koltype select.anders{background-color:#FFF8C2}
+.kolgevuld{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--zacht);font-variant-numeric:tabular-nums}
+.kolgevuld .mb{flex:1;height:4px;border-radius:2px;background:var(--navy6);overflow:hidden}
+.kolgevuld .mb i{display:block;height:100%;background:var(--navy3);border-radius:2px}
+.kolvb{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.vb{font-size:11.5px;background:var(--vlak);border-radius:6px;padding:2px 7px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--inkt)}
+.vb.leeg{color:var(--flauw);background:none;padding-left:0}
+.kolextra{grid-column:4/-1;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;margin-top:-2px}
+.kolextra .foutregel{color:#8A4B00}
+.kolextra .uitleg{color:var(--flauw)}
+.wissel{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;line-height:1.3;padding:3px 10px 3px 6px;border-radius:var(--r-pil);border:0;cursor:pointer;
+  background:var(--vlak);color:var(--zacht);transition:background var(--soepel),color var(--soepel)}
+.wissel .vakje{width:13px;height:13px;border-radius:4px;box-shadow:inset 0 0 0 1.5px var(--navy4);display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.wissel.aan{background:#E4F2E8;color:var(--goed)}
+.wissel.aan .vakje{background:var(--goed);box-shadow:none;color:#fff}
+.wissel:hover{filter:brightness(.97)}
+
+/* voorbeeldtabel */
+.datatabel{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%}
+.datatabel th{position:sticky;top:0;z-index:2;background:#FAFAFB;text-align:left;font-weight:600;color:var(--inkt);font-size:12px;
+  padding:7px 10px;border-bottom:1px solid var(--lijn);white-space:nowrap;cursor:pointer;user-select:none}
+.datatabel th:hover{background:#F2F2F4}
+.datatabel th .tb{margin-right:6px;vertical-align:-1px;height:18px;min-width:24px;font-size:10px}
+.datatabel th .xl{display:block;font-size:10px;font-weight:600;color:var(--flauw);letter-spacing:.04em;margin-bottom:2px}
+.datatabel td{padding:6px 10px;border-bottom:.5px solid var(--lijn);white-space:nowrap;max-width:300px;overflow:hidden;text-overflow:ellipsis;vertical-align:top}
+.datatabel tr:hover td{background:#FBFAF7}
+.datatabel .nr{position:sticky;left:0;z-index:1;background:#FAFAFB;color:var(--flauw);text-align:right;font-variant-numeric:tabular-nums;border-right:.5px solid var(--lijn)}
+.datatabel th.nr{z-index:3;cursor:default}
+.datatabel td.getal{text-align:right;font-variant-numeric:tabular-nums}
+.datatabel td.fout,.datatabel tr:hover td.fout{background:#FFF1D6;color:#8A4B00}
+.datatabel td.aangepast,.datatabel tr:hover td.aangepast{background:#E1EFF1;color:#1E6F7C}
+.datatabel .terug{color:var(--navy4);margin:0 2px}
+.meerladen{padding:14px;text-align:center;font-size:12px;color:var(--flauw)}
+.leegvak{padding:50px 20px;text-align:center;color:var(--flauw);font-size:13px}
+
+/* ---------- zwevend keuzevenster ---------- */
+.pop{position:fixed;z-index:80;background:#fff;border-radius:14px;padding:8px;min-width:220px;
+  box-shadow:0 10px 40px rgba(37,39,58,.22),0 2px 6px rgba(37,39,58,.12);max-height:calc(100vh - 90px);overflow:auto;
+  animation:popin 160ms cubic-bezier(.22,.61,.36,1) both}
+@keyframes popin{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+.pop .popkop{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--flauw);padding:4px 8px 6px;font-weight:600;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.popkeuze{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:none;padding:6px 10px 6px 8px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--inkt)}
+.popkeuze:hover{background:var(--vlak)}
+.popkeuze.aan{background:var(--accent-zacht);box-shadow:inset 3px 0 0 var(--geel);font-weight:600}
+.popkeuze .bij{margin-left:auto;font-size:11px;color:var(--flauw);font-weight:400;padding-left:12px}
+.popvoet{display:flex;gap:6px;justify-content:space-between;align-items:center;padding:9px 6px 3px;border-top:.5px solid var(--lijn);margin-top:5px}
+
+/* ---------- slepen over de pagina ---------- */
+.sleepvlak{position:fixed;inset:0;z-index:95;background:rgba(37,39,58,.32);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;pointer-events:none}
+.sleepvlak div{background:var(--wit);border-radius:18px;padding:26px 34px;box-shadow:var(--schaduw-op);text-align:center;font-weight:600;font-size:15px;border:2px dashed var(--navy)}
+.sleepvlak div span{display:block;font-weight:400;font-size:12.5px;color:var(--flauw);margin-top:3px}
+
+/* ---------- smal scherm ---------- */
+@media(max-width:1100px){.kopcontext{display:none}
+  .kolrij{grid-template-columns:14px 18px 26px minmax(130px,1fr) 190px minmax(0,1.2fr)}
+  .kolrij .kolgevuld{display:none}}
+@media(max-width:900px){
+  .werkraster{grid-template-columns:1fr}
+  .hoofdvak{order:-1}
+  .kolrij.kolkop{display:none}
+  .zijvak{position:static;max-height:none}
+  .stand{display:none}
+  .kolrij{grid-template-columns:14px 18px minmax(0,1fr) 170px}
+  .kolrij .letter,.kolrij .kolgevuld,.kolrij .kolvb{display:none}
+  .kolextra{grid-column:3/-1}
+  .scrollvak{height:auto;max-height:70vh}
+}
+@media(max-width:620px){.merk .woord{display:none}.akaart{padding:22px 18px 20px}.voetbinnen .samen{display:none}}
+
+/* Optisch centreren op kapitaalhoogte waar de browser dat kan. */
+@supports (text-box:trim-both cap alphabetic){
+  .mini,.chip,.segment button,.k>span,.tb,.vb{text-box:trim-both cap alphabetic}
+  .mini{padding:calc((25px - .7em) / 2) 11px}
+  .chip{padding:calc((27px - .7em) / 2) 11px}
+  .kolextra .chip{padding:calc((23px - .7em) / 2) 9px}
+  .segment button{padding:calc((27px - .7em) / 2) 12px}
+  .segment.vol button{padding-left:6px;padding-right:6px}
+  .vb{padding:calc((20px - .7em) / 2) 7px}
+  .k{min-height:34px;justify-content:center}
+  .k.cta{min-height:40px}
+}
+</style>
+</head>
+<body>
+
+<header class="kop"><div class="kopbinnen">
+  <button class="merk" id="knopMerk" title="CSV naar Excel">
+    <svg class="vlag" data-logo viewBox="0 0 500 500"></svg><span class="woord">CSV naar Excel</span>
+  </button>
+  <span class="kopcontext" id="kopcontext"></span>
+  <div class="rechts">
+    <span class="stand" id="stand" aria-live="polite"></span>
+    <button class="ikoonknop verborgen" id="knopToevoegen" title="Bestand toevoegen (Ctrl+O)" aria-label="Bestand toevoegen">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M12 11v6M9 14h6"/></svg></button>
+    <button class="ikoonknop verborgen" id="knopOpnieuw" title="Opnieuw beginnen" aria-label="Opnieuw beginnen">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></button>
+  </div>
+</div></header>
+
+<!-- ============================ START ============================ -->
+<main class="scherm" id="s-start">
+  <div class="start">
+    <div class="amerk"><svg class="vlag" data-logo viewBox="0 0 500 500"></svg><span class="awoord">CSV naar Excel</span></div>
+    <div class="akaart">
+      <h1>Welk bestand wil je omzetten?</h1>
+      <p class="aonder">Een CSV-export, bijvoorbeeld uit SharePoint. Datums, bedragen en percentages worden echte Excel-waarden, en per kolom bepaal je zelf wat er gebeurt.</p>
+      <div class="uploadzone" id="startZone" tabindex="0" role="button" aria-label="Bestand kiezen">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--navy4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V8m0 0l-3 3m3-3l3 3"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+        <h3>Sleep een of meer bestanden hierheen</h3>
+        <p>CSV, TSV of TXT. Alles gebeurt in deze browser; er gaat niets naar een server.</p>
+        <button class="k vol" id="knopKies" type="button">Bestand kiezen</button>
+      </div>
+      <div class="aregel">Of plak een tabel met <kbd>Ctrl</kbd>+<kbd>V</kbd></div>
+    </div>
+    <ul class="kunnen">
+      <li><span class="vk" data-ik="vink"></span><span><b>Datums op de juiste dag</b><span class="u">SharePoint bewaart datums in UTC; die worden omgerekend naar Nederlandse tijd.</span></span></li>
+      <li><span class="vk" data-ik="vink"></span><span><b>Bedragen en percentages als getal</b><span class="u">Zowel € 1.234,56 als € 1,234.56, en fee shares die 100× te groot zijn.</span></span></li>
+      <li><span class="vk" data-ik="vink"></span><span><b>Dossiernummers blijven intact</b><span class="u">Voorloopnullen zoals in 08867 blijven staan.</span></span></li>
+      <li><span class="vk" data-ik="vink"></span><span><b>Je keuzes worden onthouden</b><span class="u">Hernoemde of weggelaten kolommen gelden de volgende keer automatisch weer.</span></span></li>
+    </ul>
+  </div>
+</main>
+
+<!-- ============================ WERK ============================ -->
+<main class="scherm verborgen" id="s-werk">
+  <div class="blad">
+    <div class="werkraster">
+      <aside class="zijvak">
+        <div class="paneel" id="pBestanden"></div>
+        <div class="paneel instvak" id="pLees"></div>
+        <div class="paneel instvak" id="pExcel"></div>
+      </aside>
+      <section class="hoofdvak">
+        <div class="paneel" id="pInfo"></div>
+        <div class="paneel tabelpaneel">
+          <div class="tabelbalk">
+            <span class="segment" id="weergave">
+              <button type="button" data-w="kolommen" class="aan">Kolommen</button>
+              <button type="button" data-w="voorbeeld">Voorbeeld</button>
+            </span>
+            <div class="zoekvak">
+              <svg class="loep" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg>
+              <input id="zoek" type="search" placeholder="Kolom zoeken…" autocomplete="off">
+            </div>
+            <span class="knoppen" id="kolKnoppen">
+              <button class="mini" data-doe="alles-aan">Alles aan</button>
+              <button class="mini" data-doe="alles-uit">Alles uit</button>
+              <button class="mini" data-doe="automatisch" title="Namen, types, volgorde en keuzes terug naar wat automatisch is herkend">Automatisch</button>
+            </span>
+            <span class="tel" id="tel"></span>
+          </div>
+          <div class="scrollvak" id="kolVak"></div>
+          <div class="scrollvak verborgen" id="voorVak">
+            <table class="datatabel" id="voorTabel"><thead></thead><tbody></tbody></table>
+            <div class="meerladen" id="meerLaden"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="voetbalk"><div class="voetbinnen">
+    <span class="samen" id="samen"></span>
+    <div class="rest">
+      <button class="k stil" id="knopKopieer" title="Als tabel kopiëren om in Excel te plakken">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        <span>Kopiëren</span></button>
+      <button class="k cta" id="knopDownload" title="Download (Ctrl+S)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg>
+        <span id="downloadTekst">Download .xlsx</span></button>
+    </div>
+  </div></div>
+</main>
+
+<div class="pop verborgen" id="pop" role="dialog"></div>
+<div class="sleepvlak verborgen" id="sleepVlak"><div>Laat los om toe te voegen<span>CSV, TSV of TXT</span></div></div>
+<input type="file" id="bestandInvoer" multiple accept=".csv,.tsv,.txt,.tab,text/csv,text/plain,text/tab-separated-values" hidden>
+
+<script id="core">
+"use strict";
+/* =====================================================================
+   Kern — inlezen, herkennen, omzetten en .xlsx schrijven.
+   Geen DOM en geen externe bibliotheken: werkt offline en is los te testen.
+   ===================================================================== */
+const KERN = (() => {
+const MAX_RIJEN = 1048575, MAX_TEKST = 32767;
+
+/* ---------- tekens ---------- */
+const UTF8 = new TextDecoder("utf-8", { fatal: true });
+/* Windows-1252 bytes 0x80–0x9F. Vast in de code, want niet elke omgeving decodeert ze goed. */
+const CP_HOOG = "\u20AC\u0081\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u008D\u017D\u008F\u0090\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u009D\u017E\u0178";
+const CP_TERUG = new Map([...CP_HOOG].map((c, i) => [c, 0x80 + i]));
+const MOJI = new RegExp("[\\u00C2-\\u00F4][\\u0080-\\u00BF" +
+  [...CP_HOOG].filter((c) => c.charCodeAt(0) > 0xFF).map((c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0")).join("") + "]+", "g");
+
+const CODERINGEN = { "utf-8": "UTF-8", "windows-1252": "Windows-1252", "utf-16le": "UTF-16", "utf-16be": "UTF-16 BE" };
+
+function decodeer(buf, keuze) {
+  const b = new Uint8Array(buf);
+  let cod = keuze || "auto";
+  if (cod === "auto") {
+    if (b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF) cod = "utf-8";
+    else if (b[0] === 0xFF && b[1] === 0xFE) cod = "utf-16le";
+    else if (b[0] === 0xFE && b[1] === 0xFF) cod = "utf-16be";
+    else if (b.length > 3 && b[0] !== 0 && b[1] === 0 && b[3] === 0) cod = "utf-16le";
+    else { try { UTF8.decode(b); cod = "utf-8"; } catch (e) { cod = "windows-1252"; } }
+  }
+  let tekst = new TextDecoder(cod).decode(b).replace(/^\uFEFF/, "");
+  if (cod === "windows-1252") tekst = tekst.replace(/[\u0080-\u009F]/g, (c) => CP_HOOG[c.charCodeAt(0) - 0x80]);
+  return { tekst, codering: cod };
+}
+
+/* Tekst die als UTF-8 is opgeslagen maar ergens als Windows-1252 is gelezen ("FinanciÃ«le"). */
+function herstelTekens(t) {
+  let aantal = 0;
+  const tekst = t.replace(MOJI, (m) => {
+    const b = new Uint8Array(m.length);
+    for (let i = 0; i < m.length; i++) { const k = m.charCodeAt(i); b[i] = k <= 0xFF ? k : (CP_TERUG.get(m[i]) || 0); }
+    try { const r = UTF8.decode(b); aantal++; return r; } catch (e) { return m; }
+  });
+  return { tekst, aantal };
+}
+
+/* ---------- CSV ---------- */
+function parseCSV(tekst, sch, limiet = Infinity) {
+  const rijen = []; let rij = [], veld = "", inQ = false, gequote = false;
+  const n = tekst.length;
+  for (let i = 0; i < n; i++) {
+    const c = tekst[i];
+    if (inQ) {
+      if (c === '"') { if (tekst[i + 1] === '"') { veld += '"'; i++; } else inQ = false; }
+      else veld += c;
+      continue;
+    }
+    if (c === '"' && !gequote && veld.trim() === "") { inQ = true; gequote = true; veld = ""; continue; }
+    if (c === sch) { rij.push(veld); veld = ""; gequote = false; continue; }
+    if (c === "\n" || c === "\r") {
+      if (c === "\r" && tekst[i + 1] === "\n") i++;
+      rij.push(veld); rijen.push(rij); rij = []; veld = ""; gequote = false;
+      if (rijen.length >= limiet) return rijen;
+      continue;
+    }
+    veld += c;
+  }
+  if (veld !== "" || rij.length || gequote) { rij.push(veld); rijen.push(rij); }
+  return rijen;
+}
+
+/* Het scheidingsteken waarmee de meeste regels evenveel velden krijgen. */
+function raadScheiding(tekst) {
+  const stuk = tekst.slice(0, 60000);
+  let best = { sch: ",", score: -1 };
+  for (const sch of [";", ",", "\t", "|"]) {
+    let rijen = parseCSV(stuk, sch, 40).filter((r) => r.some((v) => v.trim()));
+    if (tekst.length > stuk.length && rijen.length > 2) rijen = rijen.slice(0, -1);
+    if (!rijen.length) continue;
+    const tel = new Map();
+    rijen.forEach((r) => tel.set(r.length, (tel.get(r.length) || 0) + 1));
+    let modus = 0, freq = 0;
+    tel.forEach((f, l) => { if (f > freq || (f === freq && l > modus)) { modus = l; freq = f; } });
+    if (modus < 2) continue;
+    const score = freq / rijen.length + Math.min(modus, 60) / 1000;
+    if (score > best.score) best = { sch, score };
+  }
+  return best.sch;
+}
+
+function leesTekst(tekst, o = {}) {
+  const meta = { legeRegels: 0, meer: 0, meerRijen: [], legeStaart: 0 };
+  tekst = tekst.replace(/^\uFEFF/, "");
+  let sepSch = null;
+  const sep = tekst.match(/^sep=(.)[ \t]*\r?\n/i);
+  if (sep) { sepSch = sep[1]; tekst = tekst.slice(sep[0].length); meta.sepRegel = true; }
+  if (tekst.startsWith("ListSchema=")) {
+    const i = tekst.search(/\r?\n/);
+    tekst = i >= 0 ? tekst.slice(i).replace(/^\r?\n/, "") : "";
+    meta.schema = true;
+  }
+  const keuze = o.scheiding || "auto";
+  const sch = keuze !== "auto" ? keuze : (sepSch || raadScheiding(tekst));
+  meta.scheiding = sch; meta.scheidingAuto = keuze === "auto";
+  let rijen = parseCSV(tekst, sch);
+  const over = Math.max(0, o.overslaan | 0);
+  if (over) { rijen = rijen.slice(over); meta.overgeslagen = over; }
+  const voor = rijen.length;
+  rijen = rijen.filter((r) => r.some((v) => v.trim() !== ""));
+  meta.legeRegels = voor - rijen.length;
+  const metKop = o.kopregel !== false;
+  const kop = metKop && rijen.length ? rijen.shift().map((v) => v.replace(/\s+/g, " ").trim()) : [];
+  const kopLen = kop.length;
+  let breed = kopLen;
+  rijen.forEach((r, i) => {
+    if (r.length > breed) breed = r.length;
+    if (metKop && r.length > kopLen) {
+      let extra = false;
+      for (let j = kopLen; j < r.length; j++) if (r[j].trim()) { extra = true; break; }
+      if (extra) { meta.meer++; if (meta.meerRijen.length < 5) meta.meerRijen.push(i + 1); }
+    }
+  });
+  // Kolommen achteraan zonder naam en zonder inhoud (een scheidingsteken aan het eind van elke regel).
+  while (breed > 0) {
+    const i = breed - 1;
+    if ((kop[i] || "") === "" && rijen.every((r) => !(r[i] || "").trim())) { breed--; meta.legeStaart++; } else break;
+  }
+  kop.length = breed;
+  for (let i = 0; i < breed; i++) if (!kop[i]) kop[i] = "Kolom " + (i + 1);
+  return { kop, rijen, meta };
+}
+
+/* ---------- getallen ---------- */
+const RE_NL = /^(?:\d+|\d{1,3}(?:\.\d{3})+)?(?:,\d+)?$/;
+const RE_EN = /^(?:\d+|\d{1,3}(?:,\d{3})+)?(?:\.\d+)?$/;
+function leesGetal(k, notatie) {
+  let neg = false;
+  if (k[0] === "-" || k[0] === "+") { neg = k[0] === "-"; k = k.slice(1); }
+  if (!k || !/\d/.test(k)) return null;
+  const nl = notatie === "nl";
+  if (!(nl ? RE_NL : RE_EN).test(k)) return null;
+  const n = parseFloat(nl ? k.replace(/\./g, "").replace(",", ".") : k.replace(/,/g, ""));
+  if (!isFinite(n)) return null;
+  const dec = (k.split(nl ? "," : ".")[1] || "").length;
+  return { n: neg ? -n : n, dec };
+}
+const kaal = (s) => s.replace(/[\s  ]/g, "");
+
+/* Welke notatie gebruikt deze kolom: 1.234,56 of 1,234.56? */
+function raadNotatie(vals) {
+  let nl = 0, en = 0, ambK = 0, ambP = 0;
+  const max = Math.min(vals.length, 3000);
+  for (let i = 0; i < max; i++) {
+    let k = kaal(vals[i].replace(/€|\bEUR\b|%/gi, "")).replace(/^[-+]/, "");
+    if (!/^[\d.,]+$/.test(k) || !/\d/.test(k)) continue;
+    const iP = k.lastIndexOf("."), iK = k.lastIndexOf(",");
+    if (iP >= 0 && iK >= 0) { if (iK > iP) nl++; else en++; continue; }
+    if (iK >= 0) {
+      if (k.indexOf(",") !== iK) en++;
+      else if (k.length - iK - 1 !== 3 || /^0?,/.test(k)) nl++;
+      else ambK++;
+    } else if (iP >= 0) {
+      if (k.indexOf(".") !== iP) nl++;
+      else if (k.length - iP - 1 !== 3 || /^0?\./.test(k)) en++;
+      else ambP++;
+    }
+  }
+  raadNotatie.bewijs = nl + en + ambK + ambP > 0;
+  if (nl || en) return nl >= en ? "nl" : "en";
+  if (ambK > ambP) return "en";   // € 20,000 uit een Engelstalige export
+  return "nl";                    // € 20.000
+}
+
+/* ---------- datums ---------- */
+const MAANDEN = { jan: 1, januari: 1, january: 1, feb: 2, febr: 2, februari: 2, february: 2, mrt: 3, maart: 3, mar: 3, march: 3, apr: 4, april: 4,
+  mei: 5, may: 5, jun: 6, juni: 6, june: 6, jul: 7, juli: 7, july: 7, aug: 8, augustus: 8, august: 8, sep: 9, sept: 9, september: 9,
+  okt: 10, oct: 10, oktober: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12 };
+const TZ = (() => { try { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Amsterdam", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }); } catch (e) { return null; } })();
+const serie = (y, m, d, H = 0, M = 0, S = 0) => (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 864e5 + (H * 3600 + M * 60 + S) / 86400;
+function maakDatum(y, m, d, H, M, S) {
+  H = +H || 0; M = +M || 0; S = +S || 0;
+  if (y < 1900 || y > 2199 || m < 1 || m > 12 || d < 1 || H > 23 || M > 59 || S > 59) return null;
+  const x = new Date(Date.UTC(y, m - 1, d));
+  if (x.getUTCDate() !== d || x.getUTCMonth() !== m - 1) return null;
+  return { v: serie(y, m, d, H, M, S), tijd: !!(H || M || S) };
+}
+const RE_ISO_TZ = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:[.,]\d+)?)?\s*(Z|[+-]\d{2}:?\d{2})$/i;
+const RE_ISO = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ](\d{1,2}):(\d{2})(?::(\d{2})(?:[.,]\d+)?)?)?$/;
+const RE_DMJ = /^(\d{1,2})([-\/.])(\d{1,2})\2(\d{4})(?:[ T,]+(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?)?$/;
+const RE_MND = /^(\d{1,2})[ -]([a-z]{3,9})\.?[ -](\d{4})(?:[ ,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/i;
+function leesDatum(s, volgorde) {
+  let m = s.match(RE_ISO_TZ);
+  if (m) {
+    let tz = m[7].toUpperCase();
+    if (tz !== "Z" && tz.length === 5) tz = tz.slice(0, 3) + ":" + tz.slice(3);
+    const t = Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6] || "00"}${tz}`);
+    if (isNaN(t)) return null;
+    if (!TZ) { const d = new Date(t); return maakDatum(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()); }
+    const p = {}; TZ.formatToParts(new Date(t)).forEach((x) => { p[x.type] = +x.value; });
+    return maakDatum(p.year, p.month, p.day, p.hour % 24, p.minute, p.second);
+  }
+  if ((m = s.match(RE_ISO))) return maakDatum(+m[1], +m[2], +m[3], m[4], m[5], m[6]);
+  if ((m = s.match(RE_DMJ))) {
+    const a = +m[1], b = +m[3];
+    return volgorde === "mdj" ? maakDatum(+m[4], a, b, m[5], m[6], m[7]) : maakDatum(+m[4], b, a, m[5], m[6], m[7]);
+  }
+  if ((m = s.match(RE_MND))) { const mn = MAANDEN[m[2].toLowerCase()]; return mn ? maakDatum(+m[3], mn, +m[1], m[4], m[5], m[6]) : null; }
+  return null;
+}
+function raadVolgorde(vals) {
+  let dmj = 0, mdj = 0;
+  const max = Math.min(vals.length, 3000);
+  for (let i = 0; i < max; i++) { const m = vals[i].match(RE_DMJ); if (!m) continue; if (+m[1] > 12) dmj++; if (+m[3] > 12) mdj++; }
+  return mdj > dmj ? "mdj" : "dmj";
+}
+
+/* ---------- tekst ---------- */
+const RE_HTML = /<(div|p|br|span|ul|ol|li|strong|b|i|em|u|font|table|tr|td|a|h[1-6])\b[^>]*>/i;
+const ENT = { nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", euro: "€", ndash: "–", mdash: "—", hellip: "…", lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”",
+  eacute: "é", egrave: "è", euml: "ë", ecirc: "ê", aacute: "á", agrave: "à", auml: "ä", iuml: "ï", ouml: "ö", oacute: "ó", uuml: "ü", ccedil: "ç", szlig: "ß", deg: "°", bull: "•" };
+function ontHtml(s) {
+  return s.replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|li|h[1-6]|tr)>/gi, "\n").replace(/<li\b[^>]*>/gi, "• ").replace(/<[^>]+>/g, "")
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => {
+      if (e[0] === "#") { try { return String.fromCodePoint(e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : +e.slice(1)); } catch (x) { return m; } }
+      return ENT[e.toLowerCase()] ?? m;
+    })
+    .replace(/[​\uFEFF]/g, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+/* SharePoint-opzoekvelden: "12;#Jan Jansen;#15;#Piet Pietersen" */
+function ontSp(s) {
+  const d = s.split(";#");
+  if (d.length < 2) return s;
+  if (d.length % 2 === 0 && d.every((x, i) => i % 2 || /^\d+$/.test(x))) return d.filter((_, i) => i % 2).join(", ");
+  return s.replace(/^\d+;#/, "").replace(/;#\d+;#/g, ", ").replace(/;#/g, ", ");
+}
+function tekstNet(s, kol) {
+  if (kol.html && RE_HTML.test(s)) s = ontHtml(s);
+  if (kol.spIds) s = ontSp(s);
+  if (s[0] === "[" && s[s.length - 1] === "]") {
+    try {
+      const a = JSON.parse(s);
+      if (Array.isArray(a)) s = a.map((x) => x && typeof x === "object" ? String(x.LookupValue ?? x.Title ?? x.title ?? x.DisplayName ?? x.Email ?? JSON.stringify(x)) : String(x ?? "")).join(", ");
+    } catch (e) {}
+  }
+  s = s.replace(/\r\n?/g, "\n").replace(/\t/g, " ");
+  if (s.length > MAX_TEKST) s = s.slice(0, MAX_TEKST - 1) + "…";
+  return s;
+}
+
+/* ---------- types ---------- */
+const TYPES = [
+  { w: "tekst", l: "Tekst", ik: "Aa", k: ["#E9E9EB", "#5A5C6A"] },
+  { w: "getal", l: "Getal", ik: "123", k: ["#DDEEF1", "#1E6F7C"] },
+  { w: "bedrag", l: "Bedrag", ik: "€", k: ["#E0F1E5", "#2A7F45"] },
+  { w: "percentage", l: "Percentage", ik: "%", k: ["#FFF1D6", "#8A4B00"] },
+  { w: "datum", l: "Datum", ik: "31", k: ["#E3E7F3", "#3B4A7A"] },
+  { w: "datumtijd", l: "Datum en tijd", ik: "31:", k: ["#E3E7F3", "#3B4A7A"] },
+  { w: "janee", l: "Ja/nee", ik: "J/N", k: ["#F1E4EF", "#7A2D63"] },
+];
+const JANEE = { "waar": "Ja", "niet waar": "Nee", "true": "Ja", "false": "Nee", "yes": "Ja", "no": "Nee", "ja": "Ja", "nee": "Nee", "onwaar": "Nee" };
+function decimalen(x) { const t = String(Math.round(Math.abs(x) * 1e6) / 1e6); const i = t.indexOf("."); return i < 0 || t.includes("e") ? 0 : t.length - i - 1; }
+
+const P = {
+  getal(s, kol) {
+    if (/[^\d.,\s  +\-]/.test(s)) return null;
+    const k = kaal(s);
+    if (k.replace(/\D/g, "").length > 15) return null;   // langer kan Excel niet exact bewaren
+    const r = leesGetal(k, kol.info.notatie);
+    return r && { v: r.n, dec: r.dec };
+  },
+  bedrag(s, kol) {
+    let k = kaal(s.replace(/€|\bEUR\b/gi, "")).replace(/[.,]-$/, "");   // € 1.250,- is ook goed
+    if (k === "" || k === "-") return /€|EUR/i.test(s) ? { v: 0, dec: 0 } : null;
+    if (/[^\d.,+\-]/.test(k)) return null;
+    if (/^[-+].*[-+]/.test(k)) k = "-" + k.replace(/[-+]/g, "");
+    const r = leesGetal(k, kol.info.notatie);
+    return r && { v: r.n, dec: r.dec };
+  },
+  percentage(s, kol) {
+    const heeft = s.includes("%");
+    const k = kaal(s.replace(/%/g, ""));
+    if (/[^\d.,+\-]/.test(k)) return null;
+    const r = leesGetal(k, kol.info.notatie);
+    if (!r) return null;
+    let x = r.n, aangepast = false;
+    if (!heeft && kol.info.fractie) x *= 100;
+    if (kol.pctDelen && x > 100) { x /= 100; aangepast = true; }
+    return { v: x / 100, dec: decimalen(x), aangepast };
+  },
+  datum(s, kol) { const d = leesDatum(s, kol.info.volgorde); return d && { v: Math.floor(d.v + 1e-9), tijd: d.tijd }; },
+  datumtijd(s, kol) { const d = leesDatum(s, kol.info.volgorde); return d && { v: d.v, tijd: d.tijd }; },
+  janee(s) { const j = JANEE[s.toLowerCase()]; return j ? { v: j, str: true } : null; },
+};
+const KENMERK = { bedrag: (s) => /€|\bEUR\b/i.test(s), percentage: (s) => /%\s*$/.test(s) };
+
+function steekproef(a, n) { const uit = []; const stap = (a.length - 1) / (n - 1); for (let i = 0; i < n; i++) uit.push(a[Math.round(i * stap)]); return uit; }
+function telOk(arr, t, kol) { let n = 0; for (const s of arr) if (P[t](s, kol)) n++; return n; }
+
+function profileer(vals, notatieKeuze) {
+  const gevuld = [];
+  for (const v of vals) { const t = v.trim(); if (t) gevuld.push(t); }
+  const info = { n: vals.length, gevuld: gevuld.length, reden: null, boven100: 0 };
+  info.notatie = raadNotatie(gevuld);
+  info.bewijs = raadNotatie.bewijs;
+  if (notatieKeuze && notatieKeuze !== "auto") info.notatie = notatieKeuze;
+  info.volgorde = raadVolgorde(gevuld);
+  let plat = 0, klein = 0;
+  for (const v of gevuld.slice(0, 3000)) {
+    if (v.includes("%")) continue;
+    const r = leesGetal(kaal(v), info.notatie);
+    if (r) { plat++; if (Math.abs(r.n) <= 1) klein++; }
+  }
+  info.fractie = plat > 0 && klein === plat;
+  info.html = gevuld.some((v) => RE_HTML.test(v));
+  const sp = gevuld.filter((v) => /^\d+;#/.test(v)).length;
+  info.spIds = sp > 0 && sp >= gevuld.length * 0.5;
+  let type = "tekst";
+  if (gevuld.length) {
+    const kol = { info, pctDelen: false };
+    const steek = gevuld.length > 400 ? steekproef(gevuld, 400) : gevuld;
+    // Bij veel waarden moet 90% passen; bij een handvol is 70% genoeg. Wat niet past blijft tekst en wordt gemeld.
+    const genoeg = (ok, n) => n >= 20 ? ok >= n * 0.9 : ok >= Math.max(2, n * 0.7) || (n === 1 && ok === 1);
+    for (const t of ["janee", "datum", "percentage", "bedrag", "getal"]) {
+      const sig = KENMERK[t];
+      if (sig && steek.filter(sig).length < steek.length * 0.5) continue;
+      if (!genoeg(telOk(steek, t, kol), steek.length)) continue;
+      if (steek !== gevuld && !genoeg(telOk(gevuld, t, kol), gevuld.length)) continue;
+      type = t; break;
+    }
+    if (type === "getal" && gevuld.some((v) => /^[-+]?0\d/.test(kaal(v)))) { type = "tekst"; info.reden = "voorloopnullen"; }
+    if (type === "datum" && gevuld.some((v) => { const d = leesDatum(v, info.volgorde); return d && d.tijd; })) type = "datumtijd";
+    if (type === "percentage") info.boven100 = gevuld.filter((v) => { const r = P.percentage(v, kol); return r && r.v > 1; }).length;
+  }
+  return { type, info };
+}
+
+function maakKolommen(kop, rijen, o = {}) {
+  const gezien = new Map();
+  return kop.map((naam, i) => {
+    const vals = new Array(rijen.length);
+    for (let r = 0; r < rijen.length; r++) vals[r] = rijen[r][i] ?? "";
+    const { type, info } = profileer(vals, o.notatie);
+    const x = (gezien.get(naam) || 0) + 1; gezien.set(naam, x);
+    const std = { pctDelen: info.boven100 > 0, html: info.html, spIds: info.spIds };
+    return { bron: i, sleutel: x > 1 ? `${naam}#${x}` : naam, origineel: naam, naam, aan: true, auto: type, type, info, std, ...std };
+  });
+}
+
+/* Hoeveel waarden passen bij het gekozen type, en wat valt erbuiten. */
+function stats(kol, rijen) {
+  const sl = [kol.type, kol.pctDelen ? 1 : 0, kol.info.notatie, kol.info.volgorde, kol.info.fractie ? 1 : 0, rijen.length].join("|");
+  if (kol._st && kol._st.sl === sl) return kol._st;
+  const st = { sl, ok: 0, fout: 0, fouten: [], aangepast: 0, aanpassingen: [], maxDec: 0, lang: 0, leeg: 0 };
+  const parse = kol.type === "tekst" ? null : P[kol.type];
+  for (let i = 0; i < rijen.length; i++) {
+    const s = (rijen[i][kol.bron] ?? "").trim();
+    if (!s) { st.leeg++; continue; }
+    if (!parse) { st.ok++; if (s.length > MAX_TEKST) st.lang++; continue; }
+    const p = parse(s, kol);
+    if (p) {
+      st.ok++;
+      if (p.dec > st.maxDec) st.maxDec = p.dec;
+      if (p.aangepast) { st.aangepast++; if (st.aanpassingen.length < 3) st.aanpassingen.push({ rij: i + 1, w: s, v: p.v }); }
+    } else { st.fout++; if (st.fouten.length < 4) st.fouten.push({ rij: i + 1, w: s }); }
+  }
+  return (kol._st = st);
+}
+
+/* Stijl-id's in styles.xml (zie STIJLEN) */
+const S = { getal: 0, kop: 1, datum: 2, datumtijd: 3, eur0: 4, eur2: 5, pct0: 6, pct1: 7, pct2: 8, tekstTerug: 9, tekst: 10 };
+function stijlVan(kol, st) {
+  switch (kol.type) {
+    case "getal": return S.getal;
+    case "bedrag": return st.maxDec > 0 ? S.eur2 : S.eur0;
+    case "percentage": return st.maxDec >= 2 ? S.pct2 : st.maxDec === 1 ? S.pct1 : S.pct0;
+    case "datum": return S.datum;
+    case "datumtijd": return S.datumtijd;
+    default: return null;
+  }
+}
+function context(kol, rijen, o = {}) { return { stijl: stijlVan(kol, stats(kol, rijen)), tekstStijl: o.terugloop === false ? S.tekst : S.tekstTerug }; }
+
+function celUit(raw, kol, ctx) {
+  const s = raw == null ? "" : String(raw).trim();
+  if (!s) return null;
+  if (kol.type !== "tekst") {
+    const p = P[kol.type](s, kol);
+    if (p) {
+      if (p.str) return { s: ctx.tekstStijl, v: p.v, str: true };
+      return p.aangepast ? { s: ctx.stijl, v: p.v, aangepast: true, bron: s } : { s: ctx.stijl, v: p.v };
+    }
+    return { s: ctx.tekstStijl, v: tekstNet(s, kol), str: true, fout: true };
+  }
+  const t = tekstNet(s, kol);
+  return t === "" ? null : { s: ctx.tekstStijl, v: t, str: true };
+}
+
+function uniekeNamen(namen) {
+  const gezien = new Set();
+  return namen.map((n) => {
+    let naam = n, i = 2;
+    while (gezien.has(naam.toLowerCase())) naam = `${n} (${i++})`;
+    gezien.add(naam.toLowerCase());
+    return naam;
+  });
+}
+
+function naarBlad(bestand, naam, o = {}) {
+  const kols = bestand.kolommen.filter((k) => k.aan);
+  const kop = uniekeNamen(kols.map((k) => (k.naam || "").replace(/\s+/g, " ").trim() || k.origineel));
+  const ctx = kols.map((k) => context(k, bestand.rijen, o));
+  const rijen = new Array(bestand.rijen.length);
+  for (let i = 0; i < bestand.rijen.length; i++) {
+    const r = bestand.rijen[i], uit = new Array(kols.length);
+    for (let j = 0; j < kols.length; j++) uit[j] = celUit(r[kols[j].bron], kols[j], ctx[j]);
+    rijen[i] = uit;
+  }
+  return { naam, kop, rijen };
+}
+
+/* Meerdere bladen onder elkaar; kolommen met dezelfde naam komen samen. */
+function samenvoegen(bladen, naam) {
+  const pos = new Map(), namen = [];
+  const kaarten = bladen.map((b) => b.kop.map((k) => {
+    const sl = k.toLowerCase();
+    if (!pos.has(sl)) { pos.set(sl, namen.length); namen.push(k); }
+    return pos.get(sl);
+  }));
+  const kop = uniekeNamen(["Bronbestand", ...namen]);
+  const rijen = [];
+  bladen.forEach((b, bi) => {
+    const bron = { s: S.tekst, v: b.bron || b.naam, str: true }, kaart = kaarten[bi];
+    for (const r of b.rijen) {
+      const uit = new Array(kop.length).fill(null); uit[0] = bron;
+      for (let j = 0; j < r.length; j++) uit[kaart[j] + 1] = r[j];
+      rijen.push(uit);
+    }
+  });
+  return { naam, kop, rijen };
+}
+
+/* ---------- weergave (voorbeeld en kopiëren) ---------- */
+function serieNaarDatum(v) { const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v * 86400) * 1000); return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes()]; }
+const twee = (n) => String(n).padStart(2, "0");
+function toon(c, o = {}) {
+  if (!c) return "";
+  if (c.str) return c.v;
+  const v = c.v, nlf = (n, d) => n.toLocaleString("nl-NL", { minimumFractionDigits: d, maximumFractionDigits: d });
+  switch (c.s) {
+    case S.datum: case S.datumtijd: {
+      const [y, m, d, H, M] = serieNaarDatum(v);
+      const dt = o.datum === "iso" ? `${y}-${twee(m)}-${twee(d)}` : `${twee(d)}-${twee(m)}-${y}`;
+      return c.s === S.datumtijd ? `${dt} ${twee(H)}:${twee(M)}` : dt;
+    }
+    case S.eur0: case S.eur2: {
+      if (v === 0) return "-";
+      const t = nlf(Math.abs(v), c.s === S.eur2 ? 2 : 0);
+      return v < 0 ? `€ -${t}` : `€ ${t}`;
+    }
+    case S.pct0: return nlf(v * 100, 0) + "%";
+    case S.pct1: return nlf(v * 100, 1) + "%";
+    case S.pct2: return nlf(v * 100, 2) + "%";
+    default: return v.toLocaleString("nl-NL", { useGrouping: false, maximumFractionDigits: 10 });
+  }
+}
+/* Als tekst voor het klembord: zoals Nederlandse Excel het bij plakken herkent. */
+function klembordWaarde(c, o) {
+  if (!c) return "";
+  let t;
+  if (c.str) t = c.v;
+  else if (c.s === S.eur0 || c.s === S.eur2 || c.s === S.getal) t = c.v.toLocaleString("nl-NL", { useGrouping: false, maximumFractionDigits: 10 });
+  else t = toon(c, o);
+  return /[\t\n"]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+
+/* ---------- .xlsx schrijven ---------- */
+const XE = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F￾￿]/g, "");
+function kolNaam(n) { let s = ""; n++; while (n) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+function bladNamen(namen) {
+  const gezien = new Set();
+  return namen.map((n) => {
+    let b = String(n || "").replace(/[\\\/\?\*\[\]:]/g, " ").replace(/\s+/g, " ").trim().replace(/^'+|'+$/g, "") || "Blad";
+    if (b.toLowerCase() === "history") b = "History (1)";
+    b = b.slice(0, 31).trim();
+    let naam = b, i = 2;
+    while (gezien.has(naam.toLowerCase())) { const x = ` (${i++})`; naam = b.slice(0, 31 - x.length).trim() + x; }
+    gezien.add(naam.toLowerCase());
+    return naam;
+  });
+}
+const NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+const XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+
+function stijlenXml(o) {
+  const iso = o.datum === "iso";
+  const dat = iso ? "yyyy\\-mm\\-dd" : "dd\\-mm\\-yyyy";
+  const eur = (d) => XE(`"€ "#,##0${d};"€ -"#,##0${d};"-"`);
+  const al = '<alignment vertical="top"/>';
+  return XML + `<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`
+    + `<numFmts count="5"><numFmt numFmtId="164" formatCode="${dat}"/><numFmt numFmtId="165" formatCode="${dat} hh:mm"/>`
+    + `<numFmt numFmtId="166" formatCode="${eur("")}"/><numFmt numFmtId="167" formatCode="${eur(".00")}"/><numFmt numFmtId="168" formatCode="0.0%"/></numFmts>`
+    + `<fonts count="2"><font><sz val="10"/><name val="Arial"/><family val="2"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/><family val="2"/></font></fonts>`
+    + `<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>`
+    + `<fill><patternFill patternType="solid"><fgColor rgb="FF25273A"/><bgColor indexed="64"/></patternFill></fill></fills>`
+    + `<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top/><bottom style="medium"><color rgb="FFFFDF00"/></bottom><diagonal/></border></borders>`
+    + `<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>`
+    + `<cellXfs count="11">`
+    + `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1">${al}</xf>`
+    + `<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>`
+    + [164, 165, 166, 167, 9, 168, 10].map((f) => `<xf numFmtId="${f}" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1">${al}</xf>`).join("")
+    + `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>`
+    + `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1">${al}</xf>`
+    + `</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>`
+    + `<dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/></styleSheet>`;
+}
+
+function breedte(c) {
+  if (!c) return 0;
+  if (c.str) { let m = 0; for (const r of String(c.v).split("\n")) if (r.length > m) m = r.length; return m; }
+  switch (c.s) {
+    case S.datum: return 10; case S.datumtijd: return 16;
+    case S.eur0: case S.eur2: { const n = String(Math.round(Math.abs(c.v))).length; return n + Math.floor((n - 1) / 3) + 3 + (c.s === S.eur2 ? 3 : 0) + (c.v < 0 ? 1 : 0); }
+    case S.pct0: case S.pct1: case S.pct2: return 7;
+    default: return String(c.v).length;
+  }
+}
+
+function bladXml(blad, i, o, tabelRid, sst) {
+  const nK = Math.max(1, blad.kop.length), nR = blad.rijen.length;
+  const lk = kolNaam(nK - 1), laatste = nR + 1, ref = `A1:${lk}${Math.max(laatste, tabelRid ? 2 : 1)}`;
+  // kolombreedtes: kop plus de eerste 5000 regels
+  const br = blad.kop.map((h) => Math.min(60, Math.max(8, h.length + 3)));
+  const n = Math.min(nR, 5000);
+  for (let r = 0; r < n; r++) { const rij = blad.rijen[r]; for (let j = 0; j < rij.length; j++) { const w = breedte(rij[j]); if (w + 2 > br[j]) br[j] = Math.min(60, w + 2); } }
+  const xs = Math.min(o.vastKol | 0, nK - 1), ys = o.vastKop === false ? 0 : 1;
+  let pane = "";
+  if (xs || ys) {
+    const tl = kolNaam(xs) + (ys + 1), ap = xs && ys ? "bottomRight" : ys ? "bottomLeft" : "topRight";
+    pane = `<pane${xs ? ` xSplit="${xs}"` : ""}${ys ? ` ySplit="${ys}"` : ""} topLeftCell="${tl}" activePane="${ap}" state="frozen"/><selection pane="${ap}" activeCell="${tl}" sqref="${tl}"/>`;
+  }
+  const delen = [XML, `<worksheet ${NS}><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:${lk}${laatste}"/>`,
+    `<sheetViews><sheetView workbookViewId="0"${i === 0 ? ' tabSelected="1"' : ""}${o.zoom ? ` zoomScale="${o.zoom}"` : ""}>${pane}</sheetView></sheetViews>`,
+    `<sheetFormatPr defaultRowHeight="13.2"/><cols>`, br.map((w, j) => `<col min="${j + 1}" max="${j + 1}" width="${w}" customWidth="1"/>`).join(""), `</cols><sheetData>`];
+  delen.push(`<row r="1">` + blad.kop.map((h, j) => `<c r="${kolNaam(j)}1" s="${S.kop}" t="s"><v>${sst(h)}</v></c>`).join("") + `</row>`);
+  const letters = blad.kop.map((_, j) => kolNaam(j));
+  for (let r = 0; r < nR; r++) {
+    const rij = blad.rijen[r], rn = r + 2;
+    let x = `<row r="${rn}">`;
+    for (let j = 0; j < rij.length; j++) {
+      const c = rij[j]; if (!c) continue;
+      if (c.str) x += `<c r="${letters[j]}${rn}" s="${c.s}" t="s"><v>${sst(c.v)}</v></c>`;
+      else if (typeof c.v === "number" && isFinite(c.v)) x += `<c r="${letters[j]}${rn}" s="${c.s}"><v>${c.v}</v></c>`;
+    }
+    delen.push(x + "</row>");
+  }
+  delen.push("</sheetData>");
+  if (o.filter === "filter") delen.push(`<autoFilter ref="A1:${lk}${laatste}"/>`);
+  const titel = String(o.titel || blad.naam).replace(/&/g, "&&");
+  delen.push(`<pageMargins left="0.4" right="0.4" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>`,
+    `<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>`,
+    `<headerFooter><oddFooter>${XE(`&L&8${titel}&R&8&P / &N`)}</oddFooter></headerFooter>`,
+    `<ignoredErrors><ignoredError sqref="A1:${lk}${laatste}" numberStoredAsText="1"/></ignoredErrors>`);
+  if (tabelRid) delen.push(`<tableParts count="1"><tablePart r:id="${tabelRid}"/></tableParts>`);
+  delen.push("</worksheet>");
+  return { xml: delen.join(""), ref };
+}
+
+function tabelXml(blad, id, ref) {
+  return XML + `<table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="${id}" name="Tabel${id}" displayName="Tabel${id}" ref="${ref}" totalsRowShown="0">`
+    + `<autoFilter ref="${ref}"/><tableColumns count="${blad.kop.length}">`
+    + blad.kop.map((h, j) => `<tableColumn id="${j + 1}" name="${XE(h)}"/>`).join("")
+    + `</tableColumns><tableStyleInfo name="TableStyleLight1" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/></table>`;
+}
+
+async function maakWerkmap(bladenIn, o = {}) {
+  const bladen = [];
+  for (const b of bladenIn) {
+    const kop = b.kop.length ? b.kop : ["Kolom 1"];
+    if (b.rijen.length <= MAX_RIJEN) { bladen.push({ ...b, kop }); continue; }
+    for (let k = 0; k * MAX_RIJEN < b.rijen.length; k++) bladen.push({ ...b, kop, naam: k ? `${b.naam} (${k + 1})` : b.naam, rijen: b.rijen.slice(k * MAX_RIJEN, (k + 1) * MAX_RIJEN) });
+  }
+  const namen = bladNamen(bladen.map((b) => b.naam));
+  const tabel = o.filter === "tabel";
+  const nu = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+  const f = {};
+  const ct = ['<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>',
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>',
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>',
+    '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>',
+    '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>'];
+  const wbRels = [], sheets = [], names = [];
+  // Gedeelde tekst: elke unieke tekst één keer, zoals Excel het zelf opslaat.
+  const sstIdx = new Map(), sstLijst = []; let sstTel = 0;
+  const sst = (t) => { t = String(t); sstTel++; let x = sstIdx.get(t); if (x === undefined) { x = sstLijst.length; sstIdx.set(t, x); sstLijst.push(t); } return x; };
+  bladen.forEach((b, i) => {
+    const nr = i + 1;
+    const { xml, ref } = bladXml(b, i, o, tabel ? "rId1" : null, sst);
+    f[`xl/worksheets/sheet${nr}.xml`] = xml;
+    ct.push(`<Override PartName="/xl/worksheets/sheet${nr}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`);
+    if (tabel) {
+      f[`xl/tables/table${nr}.xml`] = tabelXml(b, nr, ref);
+      f[`xl/worksheets/_rels/sheet${nr}.xml.rels`] = XML + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table${nr}.xml"/></Relationships>`;
+      ct.push(`<Override PartName="/xl/tables/table${nr}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/>`);
+    }
+    wbRels.push(`<Relationship Id="rId${nr}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${nr}.xml"/>`);
+    sheets.push(`<sheet name="${XE(namen[i])}" sheetId="${nr}" r:id="rId${nr}"/>`);
+    const q = "'" + namen[i].replace(/'/g, "''") + "'";
+    if (o.filter === "filter") names.push(`<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">${XE(q)}!$A$1:$${kolNaam(Math.max(1, b.kop.length) - 1)}$${b.rijen.length + 1}</definedName>`);
+    names.push(`<definedName name="_xlnm.Print_Titles" localSheetId="${i}">${XE(q)}!$1:$1</definedName>`);
+  });
+  wbRels.push(`<Relationship Id="rId${bladen.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`,
+    `<Relationship Id="rId${bladen.length + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>`);
+  ct.push('<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>');
+  f["xl/sharedStrings.xml"] = XML + `<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${sstTel}" uniqueCount="${sstLijst.length}">`
+    + sstLijst.map((t) => `<si><t xml:space="preserve">${XE(t)}</t></si>`).join("") + `</sst>`;
+  f["[Content_Types].xml"] = XML + `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${ct.join("")}</Types>`;
+  f["_rels/.rels"] = XML + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`
+    + `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>`
+    + `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>`
+    + `<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`;
+  f["docProps/core.xml"] = XML + `<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">`
+    + `<dc:title>${XE(o.titel || namen[0] || "")}</dc:title><dc:creator>CSV naar Excel</dc:creator>`
+    + `<dcterms:created xsi:type="dcterms:W3CDTF">${nu}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${nu}</dcterms:modified></cp:coreProperties>`;
+  f["docProps/app.xml"] = XML + `<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Microsoft Excel</Application></Properties>`;
+  f["xl/workbook.xml"] = XML + `<workbook ${NS}><bookViews><workbookView activeTab="0"/></bookViews><sheets>${sheets.join("")}</sheets>`
+    + (names.length ? `<definedNames>${names.join("")}</definedNames>` : "") + `</workbook>`;
+  f["xl/_rels/workbook.xml.rels"] = XML + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${wbRels.join("")}</Relationships>`;
+  f["xl/styles.xml"] = stijlenXml(o);
+  // Volgorde in het zip-bestand: [Content_Types].xml eerst, zoals Excel het ook doet.
+  const volg = {}; ["[Content_Types].xml", "_rels/.rels"].forEach((k) => (volg[k] = f[k]));
+  Object.keys(f).forEach((k) => { if (!(k in volg)) volg[k] = f[k]; });
+  return zip(volg, true);
+}
+
+/* ---------- ZIP ---------- */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+async function deflate(b) {
+  if (typeof CompressionStream === "undefined") return null;
+  try { const s = new Blob([b]).stream().pipeThrough(new CompressionStream("deflate-raw")); return new Uint8Array(await new Response(s).arrayBuffer()); }
+  catch (e) { return null; }
+}
+async function zip(files, comprimeer = true) {
+  const enc = new TextEncoder(), delen = [], centraal = []; let off = 0, aantal = 0;
+  const nu = new Date();
+  const tijd = ((nu.getHours() << 11) | (nu.getMinutes() << 5) | (nu.getSeconds() >> 1)) & 0xFFFF;
+  const dag = (((nu.getFullYear() - 1980) << 9) | ((nu.getMonth() + 1) << 5) | nu.getDate()) & 0xFFFF;
+  for (const [naam, inhoud] of Object.entries(files)) {
+    const nb = enc.encode(naam), db = typeof inhoud === "string" ? enc.encode(inhoud) : inhoud, crc = crc32(db);
+    let data = db, methode = 0;
+    if (comprimeer && db.length > 128) { const c = await deflate(db); if (c && c.length < db.length) { data = c; methode = 8; } }
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, methode, true);
+    lh.setUint16(10, tijd, true); lh.setUint16(12, dag, true); lh.setUint32(14, crc, true);
+    lh.setUint32(18, data.length, true); lh.setUint32(22, db.length, true); lh.setUint16(26, nb.length, true);
+    delen.push(new Uint8Array(lh.buffer), nb, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, methode, true);
+    ch.setUint16(12, tijd, true); ch.setUint16(14, dag, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, data.length, true); ch.setUint32(24, db.length, true); ch.setUint16(28, nb.length, true); ch.setUint32(42, off, true);
+    centraal.push(new Uint8Array(ch.buffer), nb);
+    off += 30 + nb.length + data.length; aantal++;
+  }
+  const cdGrootte = centraal.reduce((s, p) => s + p.length, 0);
+  const eind = new DataView(new ArrayBuffer(22));
+  eind.setUint32(0, 0x06054b50, true); eind.setUint16(8, aantal, true); eind.setUint16(10, aantal, true);
+  eind.setUint32(12, cdGrootte, true); eind.setUint32(16, off, true);
+  const alles = [...delen, ...centraal, new Uint8Array(eind.buffer)];
+  const uit = new Uint8Array(alles.reduce((s, p) => s + p.length, 0)); let p = 0;
+  for (const a of alles) { uit.set(a, p); p += a.length; }
+  return uit;
+}
+
+/* Alles in één keer: tekst erin, .xlsx eruit. Handig om te testen. */
+async function csvNaarXlsx(tekst, opties = {}) {
+  const l = leesTekst(tekst, opties);
+  const best = { kop: l.kop, rijen: l.rijen, kolommen: maakKolommen(l.kop, l.rijen, opties) };
+  const blad = naarBlad(best, opties.bladnaam || "Blad1", opties);
+  return { bytes: await maakWerkmap([blad], opties), bestand: best, blad, meta: l.meta };
+}
+
+return { MAX_RIJEN, MAX_TEKST, CODERINGEN, TYPES, S, decodeer, herstelTekens, parseCSV, raadScheiding, leesTekst, leesDatum, raadNotatie,
+  profileer, maakKolommen, stats, stijlVan, context, celUit, naarBlad, samenvoegen, toon, klembordWaarde, maakWerkmap, zip, csvNaarXlsx, bladNamen };
+})();
+if (typeof module !== "undefined") module.exports = KERN;
+</script>
+
+<script>
+"use strict";
+/* =====================================================================
+   CSV naar Excel — scherm
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const nl = (n, o) => Number(n).toLocaleString("nl-NL", o);
+const svg = (d, m = 14, sw = 2) => `<svg width="${m}" height="${m}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const IK = {
+  vink: (m = 10) => svg('<path d="M5 12.5 10 17.5 19 7"/>', m, 3.2),
+  x: (m = 12) => svg('<path d="M6 6l12 12M18 6L6 18"/>', m, 2.4),
+  plus: (m = 14) => svg('<path d="M12 5v14M5 12h14"/>', m, 2.4),
+};
+const LOGO_D = "M72.884,468.165c-25.574,0-42.914-13.098-42.914-37.422v-0.936h14.038v0.621c0,15.904,11.536,25.268,28.998,25.268c9.356,0,27.132-4.057,27.132-19.031c0-28.997-66.737-8.416-66.737-49.893c0-20.896,19.463-30.252,38.797-30.252c22.765,0,38.232,13.094,38.232,34.305v0.936H96.399v-0.936c0-13.723-9.67-21.833-25.267-21.833c-10.915,0-23.701,4.678-23.701,17.158c0,27.132,66.737,8.102,66.737,49.894C114.168,458.183,93.461,468.165,72.884,468.165 M210.424,465.048c-1.244-3.119-2.13-13.723-2.13-18.708v-57.388c0-22.765-13.974-32.432-38.304-32.432c-22.45,0-42.099,9.981-42.099,34.619v0.936h14.038v-0.936c0-15.911,11.851-22.14,26.511-22.14c17.461,0,25.566,6.229,25.566,20.267c0,10.91-5.296,12.161-15.281,13.408l-5.296,0.629c-24.638,2.803-49.904,5.611-49.904,33.673c0,19.337,13.102,31.188,34.937,31.188c19.02,0,31.178-8.416,36.481-19.96c0,0,0,11.229,1.558,16.843H210.424z M194.006,424.193c0,8.108-2.802,15.596-8.105,21.21c-6.547,6.544-15.91,10.289-26.51,10.289c-10.286,0-21.829-5.614-21.829-19.023c0-16.218,17.462-19.956,36.174-22.146l9.979-1.244c2.815-0.307,8.112-1.25,10.292-3.116V424.193z M300.97,359.636h-1.244h-13.767l-28.647,89.323l-28.954-89.323h-16.261l37.424,105.409h15.282L300.97,359.636z M324.835,331.893c0-5.572-4.582-9.828-9.82-9.828c-5.24,0-9.821,4.256-9.821,9.5c0,5.568,4.581,9.82,9.821,9.82c5.238,0,9.82-4.252,9.82-9.82V331.893z M322.497,465.045V359.636h-0.936h-13.724v105.409H322.497z M351.495,465.045V319.717h-0.93h-13.723v145.328H351.495z M380.2,465.045V319.717h-0.937H365.54v145.328H380.2z M431.52,468.165c20.592,0,41.291-9.982,41.291-32.121c0-41.792-67.044-22.762-67.044-49.894c0-12.48,12.779-17.158,24.002-17.158c15.596,0,25.266,8.109,25.266,21.833v0.936h14.031v-0.936c0-21.21-15.468-34.305-38.54-34.305c-19.341,0-38.797,9.356-38.797,30.252c0,41.477,67.044,20.896,67.044,49.893c0,14.975-18.083,19.031-27.432,19.031c-17.162,0-29.012-9.363-29.012-25.268v-0.621h-14.038v0.936C388.291,455.067,405.638,468.165,431.52,468.165";
+function tekenLogos() {
+  $$("[data-logo]").forEach((s) => { s.innerHTML = `<rect fill="#FFDF00" width="500" height="500"/><path fill="#CE171E" d="${LOGO_D}"/>`; });
+  const fav = document.createElement("link"); fav.rel = "icon"; fav.type = "image/svg+xml";
+  fav.href = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500"><rect fill="#FFDF00" width="500" height="500"/><path fill="#CE171E" d="${LOGO_D}"/></svg>`);
+  document.head.appendChild(fav);
+  $$("[data-ik]").forEach((s) => { s.innerHTML = IK[s.dataset.ik](); });
+}
+
+const TYPEMAP = Object.fromEntries(KERN.TYPES.map((t) => [t.w, t]));
+const typeBadge = (w) => { const t = TYPEMAP[w] || TYPEMAP.tekst; return `<span class="tb" style="background:${t.k[0]};color:${t.k[1]}" title="${t.l}">${t.ik}</span>`; };
+const SCHNAAM = { ";": "puntkomma", ",": "komma", "\t": "tab", "|": "verticale streep" };
+const CODNAAM = KERN.CODERINGEN;
+const TYPEMEERV = { getal: ["getalkolom", "getalkolommen"], bedrag: ["bedrag", "bedragen"], percentage: ["percentage", "percentages"], datum: ["datum", "datums"], datumtijd: ["datum met tijd", "datums met tijd"], janee: ["ja/nee-kolom", "ja/nee-kolommen"] };
+
+/* ---------------- status ---------------- */
+const LS_INST = "csvXlsx_instellingen_v1", LS_PROF = "csvXlsx_profielen_v1";
+const STD_INST = { filter: "filter", vastKop: true, vastKol: 2, datum: "nl", terugloop: true, meerdere: "bladen" };
+let INST = { ...STD_INST };
+let PROFIELEN = {};
+let BESTANDEN = [];
+let ACTIEF = 0;
+const UI = { weergave: "kolommen", zoek: "", pop: null, getoond: 0, rijen: [], kols: [], ctx: [], bestandsnaam: "", bezig: false };
+const actief = () => BESTANDEN[ACTIEF] || null;
+
+function laadOpslag() {
+  try { INST = { ...STD_INST, ...JSON.parse(localStorage.getItem(LS_INST) || "{}") }; } catch (e) {}
+  try { PROFIELEN = JSON.parse(localStorage.getItem(LS_PROF) || "{}") || {}; } catch (e) { PROFIELEN = {}; }
+}
+function bewaarInst() { try { localStorage.setItem(LS_INST, JSON.stringify(INST)); } catch (e) {} }
+function bewaarProfielen() {
+  const lijst = Object.entries(PROFIELEN).sort((a, b) => (b[1].t || 0) - (a[1].t || 0)).slice(0, 40);
+  PROFIELEN = Object.fromEntries(lijst);
+  try { localStorage.setItem(LS_PROF, JSON.stringify(PROFIELEN)); } catch (e) {}
+}
+
+/* Korte melding rechts in de kop, zoals in de Referentie Tool. */
+let _meldTimer = null;
+function melding(t, soort) {
+  const s = $("#stand");
+  s.textContent = t; s.className = "stand " + (soort || "");
+  clearTimeout(_meldTimer);
+  if (soort !== "mis") _meldTimer = setTimeout(() => { if (s.textContent === t) s.textContent = ""; }, 3200);
+}
+const rust = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+
+/* ---------------- inlezen ---------------- */
+async function voegToe(lijst) {
+  const files = [...lijst];
+  let n = 0;
+  for (const f of files) {
+    if (/\.(xlsx|xlsm|xls|ods)$/i.test(f.name)) { melding(`${f.name} is al een spreadsheet`, "mis"); continue; }
+    melding(`${f.name} inlezen…`);
+    await rust();
+    try { nieuwBestand(f.name, await f.arrayBuffer()); n++; }
+    catch (e) { console.error(e); melding(`${f.name} kon niet worden gelezen: ${e.message}`, "mis"); }
+  }
+  if (!n) return;
+  teken();
+  const b = actief();
+  melding(n === 1 ? `${b.naam}: ${nl(b.rijen.length)} rijen ingelezen` : `${n} bestanden ingelezen`, "goed");
+}
+
+function nieuwBestand(naam, buf) {
+  const b = {
+    id: uid(), naam, basis: naam.replace(/\.[^.]+$/, "") || "export", grootte: buf.byteLength, buf, blad: "",
+    lees: { scheiding: "auto", codering: "auto", notatie: "auto", kopregel: true, overslaan: 0, herstel: true },
+  };
+  verwerk(b, null);
+  BESTANDEN.push(b);
+  ACTIEF = BESTANDEN.length - 1;
+  UI.zoek = ""; $("#zoek").value = "";
+}
+
+function verwerk(b, behoud) {
+  const d = KERN.decodeer(b.buf, b.lees.codering);
+  const h = KERN.herstelTekens(d.tekst);
+  const l = KERN.leesTekst(b.lees.herstel ? h.tekst : d.tekst, b.lees);
+  Object.assign(b, { codering: d.codering, hersteld: b.lees.herstel ? h.aantal : 0, herstelbaar: h.aantal, meta: l.meta, kop: l.kop, rijen: l.rijen });
+  b.kolommen = KERN.maakKolommen(l.kop, l.rijen, b.lees);
+  b.sig = l.kop.join("␟");
+  b.profiel = false;
+  if (behoud) pasToe(b, behoud);
+  else if (PROFIELEN[b.sig]) { pasToe(b, PROFIELEN[b.sig]); b.profiel = true; PROFIELEN[b.sig].t = Date.now(); bewaarProfielen(); }
+}
+
+/* ---------------- kolominstellingen onthouden ----------------
+   Per soort export (dezelfde kolomnamen) bewaren we wat je hebt aangepast:
+   namen, types, weggelaten kolommen en de volgorde. */
+function pasToe(b, p) {
+  const typen = new Set(KERN.TYPES.map((t) => t.w));
+  for (const k of b.kolommen) {
+    const x = p.kol && p.kol[k.sleutel]; if (!x) continue;
+    if (x.n != null) k.naam = x.n;
+    if (x.a != null) k.aan = x.a;
+    if (x.t && typen.has(x.t)) k.type = x.t;
+    if (x.p != null) k.pctDelen = x.p;
+    if (x.h != null) k.html = x.h;
+    if (x.s != null) k.spIds = x.s;
+  }
+  if (p.volgorde && p.volgorde.length) {
+    const rang = new Map(p.volgorde.map((s, i) => [s, i]));
+    b.kolommen.sort((a, c) => (rang.has(a.sleutel) ? rang.get(a.sleutel) : 1e6 + a.bron) - (rang.has(c.sleutel) ? rang.get(c.sleutel) : 1e6 + c.bron));
+  }
+}
+function profielVan(b) {
+  const kol = {}; let anders = false;
+  for (const k of b.kolommen) {
+    const x = {};
+    if (k.naam !== k.origineel) x.n = k.naam;
+    if (!k.aan) x.a = false;
+    if (k.type !== k.auto) x.t = k.type;
+    if (k.pctDelen !== k.std.pctDelen) x.p = k.pctDelen;
+    if (k.html !== k.std.html) x.h = k.html;
+    if (k.spIds !== k.std.spIds) x.s = k.spIds;
+    if (Object.keys(x).length) { kol[k.sleutel] = x; anders = true; }
+  }
+  const verschoven = b.kolommen.some((k, i) => k.bron !== i);
+  return anders || verschoven ? { kol, volgorde: verschoven ? b.kolommen.map((k) => k.sleutel) : null, t: Date.now() } : null;
+}
+let _onthoudTimer = null;
+function onthoud(b) {
+  clearTimeout(_onthoudTimer);
+  _onthoudTimer = setTimeout(() => {
+    const p = profielVan(b);
+    if (p) PROFIELEN[b.sig] = p; else delete PROFIELEN[b.sig];
+    bewaarProfielen();
+  }, 250);
+}
+
+/* ---------------- tekenen ---------------- */
+function teken() {
+  const heeft = BESTANDEN.length > 0;
+  $("#s-start").classList.toggle("verborgen", heeft);
+  $("#s-werk").classList.toggle("verborgen", !heeft);
+  $("#knopOpnieuw").classList.toggle("verborgen", !heeft);
+  $("#knopToevoegen").classList.toggle("verborgen", !heeft);
+  sluitPop();
+  if (!heeft) { $("#kopcontext").textContent = ""; return; }
+  ACTIEF = Math.min(Math.max(0, ACTIEF), BESTANDEN.length - 1);
+  tekenBestanden(); tekenLees(); tekenExcel(); tekenInfo(); tekenWeergave(); tekenVoet();
+  const b = actief();
+  $("#kopcontext").innerHTML = `<b>${esc(b.naam)}</b>${BESTANDEN.length > 1 ? ` · bestand ${ACTIEF + 1} van ${BESTANDEN.length}` : ""}`;
+}
+
+function aandacht(b) {
+  if (b.meta.meer) return true;
+  return b.kolommen.some((k) => k.aan && KERN.stats(k, b.rijen).fout > 0);
+}
+function grootte(n) { return n < 1024 ? n + " B" : n < 1048576 ? nl(Math.round(n / 1024)) + " kB" : nl(n / 1048576, { maximumFractionDigits: 1 }) + " MB"; }
+
+function tekenBestanden() {
+  const n = BESTANDEN.length;
+  $("#pBestanden").innerHTML = `<div class="paneelkop"><h2>Bestanden</h2><span class="aantal">${n}</span></div>
+    <ul class="bestandlijst">${BESTANDEN.map((b, i) => {
+      const ext = (b.naam.match(/\.([a-z0-9]{1,4})$/i) || [, "CSV"])[1].toUpperCase();
+      const let_ = aandacht(b);
+      return `<li class="bestand${i === ACTIEF ? " aan" : ""}" data-b="${i}" title="${esc(b.naam)}">
+        <span class="bicoon">${esc(ext)}</span>
+        <span class="binfo"><b>${esc(b.naam)}</b><em>${nl(b.rijen.length)} rijen · ${b.kolommen.length} kolommen</em></span>
+        <span class="bstaat${let_ ? " let" : ""}" title="${let_ ? "Er zijn waarden om na te kijken" : "Alles herkend"}"></span>
+        <button class="ikoonknop klein" data-weg="${i}" title="Sluiten" aria-label="${esc(b.naam)} sluiten">${IK.x()}</button>
+      </li>`;
+    }).join("")}</ul>
+    <button class="typeplus" data-doe="kies">${IK.plus()} Bestand toevoegen</button>`;
+}
+
+function seg(attr, sl, waarde, opts, vol = true) {
+  return `<span class="segment${vol ? " vol" : ""}" ${attr}="${sl}">${opts.map(([w, l, t]) =>
+    `<button type="button" data-w="${esc(w)}" class="${String(waarde) === String(w) ? "aan" : ""}"${t ? ` title="${esc(t)}"` : ""}>${l}</button>`).join("")}</span>`;
+}
+
+function tekenLees() {
+  const b = actief(), L = b.lees, m = b.meta;
+  const getalKols = b.kolommen.filter((k) => ["getal", "bedrag", "percentage"].includes(k.auto) && k.info.bewijs);
+  const nlN = getalKols.filter((k) => k.info.notatie === "nl").length, enN = getalKols.length - nlN;
+  const notHint = !getalKols.length ? "Geen decimalen of duizendtallen gevonden" :
+    `Herkend: ${nlN ? `1.234,56 in ${nlN} kolom${nlN === 1 ? "" : "men"}` : ""}${nlN && enN ? " en " : ""}${enN ? `1,234.56 in ${enN} kolom${enN === 1 ? "" : "men"}` : ""}`;
+  $("#pLees").innerHTML = `
+    <div class="groepkop">Inlezen</div>
+    <div class="rij"><span class="veldlabel">Scheidingsteken</span>
+      ${seg("data-lees", "scheiding", L.scheiding, [["auto", "Auto"], [";", ";", "Puntkomma"], [",", ",", "Komma"], ["\t", "Tab"], ["|", "|", "Verticale streep"]])}
+      <div class="hint">${L.scheiding === "auto" ? `Gevonden: ${esc(SCHNAAM[m.scheiding] || m.scheiding)}` : "Handmatig gekozen"}</div></div>
+    <div class="rij"><span class="veldlabel">Tekenset</span>
+      <select class="invoer" data-lees="codering">${[["auto", `Automatisch${L.codering === "auto" ? ` (${CODNAAM[b.codering] || b.codering})` : ""}`], ["utf-8", "UTF-8"], ["windows-1252", "Windows-1252 (ANSI)"], ["utf-16le", "UTF-16"]]
+        .map(([w, l]) => `<option value="${w}" ${L.codering === w ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></div>
+    <div class="rij"><span class="veldlabel">Getallen</span>
+      ${seg("data-lees", "notatie", L.notatie, [["auto", "Auto"], ["nl", "1.234,56"], ["en", "1,234.56"]])}
+      <div class="hint">${L.notatie === "auto" ? esc(notHint) : "Geldt voor alle kolommen"}</div></div>
+    <label class="pvink"><input type="checkbox" data-lees="kopregel" ${L.kopregel ? "checked" : ""}><span><b>Eerste regel bevat de kolomnamen</b></span></label>
+    <div class="rij naast" style="margin:6px 0 2px"><span class="veldlabel" style="margin:0">Regels overslaan bovenaan</span>
+      <input class="invoer kort" type="number" min="0" max="999" data-lees="overslaan" value="${L.overslaan}" aria-label="Regels overslaan bovenaan"></div>`;
+}
+
+function standaardNaam() {
+  if (BESTANDEN.length === 1 || INST.meerdere === "apart") return actief().basis;
+  const d = new Date();
+  return `CSV naar Excel ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function modus() { return BESTANDEN.length > 1 ? INST.meerdere : "bladen"; }
+
+function tekenExcel() {
+  const b = actief(), meer = BESTANDEN.length > 1, md = modus();
+  const mHint = { bladen: "Eén werkmap met een blad per bestand.", apart: "Elk bestand een eigen .xlsx, samen in één zip.", samen: "Alles onder elkaar in één blad, met een kolom Bronbestand. Kolommen met dezelfde naam komen samen." }[md];
+  $("#pExcel").innerHTML = `
+    <div class="groepkop">Excel</div>
+    ${meer ? `<div class="rij"><span class="veldlabel">${BESTANDEN.length} bestanden</span>
+      ${seg("data-inst", "meerdere", INST.meerdere, [["bladen", "Bladen"], ["apart", "Los"], ["samen", "Samenvoegen"]])}
+      <div class="hint">${mHint}</div></div>` : ""}
+    ${md !== "samen" ? `<div class="vld"><label for="bladnaam">Bladnaam${meer ? ` <span class="optioneel">— ${esc(b.naam)}</span>` : ""}</label>
+      <input id="bladnaam" class="invoer" data-bladnaam value="${esc(b.blad)}" placeholder="${esc(b.basis.slice(0, 31))}" maxlength="31" spellcheck="false"></div>` : ""}
+    ${md !== "apart" ? `<div class="vld"><label for="bestandsnaam">Bestandsnaam</label>
+      <div class="eenheid"><input id="bestandsnaam" class="invoer" value="${esc(UI.bestandsnaam)}" placeholder="${esc(standaardNaam())}" spellcheck="false"><span>.xlsx</span></div></div>` : ""}
+    <div class="rij"><span class="veldlabel">Filteren en sorteren</span>
+      ${seg("data-inst", "filter", INST.filter, [["geen", "Geen"], ["filter", "Filterknoppen"], ["tabel", "Excel-tabel"]])}
+      <div class="hint">${INST.filter === "tabel" ? "Opgemaakt als tabel met wisselende regelkleur; handig voor formules en draaitabellen." : INST.filter === "filter" ? "Filterknoppen op de kopregel." : "Zonder filterknoppen."}</div></div>
+    <div class="rij"><span class="veldlabel">Vastzetten bij scrollen</span>
+      <label class="pvink" style="margin-bottom:6px"><input type="checkbox" data-inst="vastKop" ${INST.vastKop ? "checked" : ""}><span><b>Kopregel</b></span></label>
+      ${seg("data-inst", "vastKol", INST.vastKol, [[0, "Geen kolom"], [1, "1 kolom"], [2, "2"], [3, "3"]])}</div>
+    <div class="rij"><span class="veldlabel">Datums</span>
+      ${seg("data-inst", "datum", INST.datum, [["nl", "31-12-2026"], ["iso", "2026-12-31"]])}</div>
+    <label class="pvink"><input type="checkbox" data-inst="terugloop" ${INST.terugloop ? "checked" : ""}><span><b>Lange tekst laten teruglopen</b><em>Tekst over meerdere regels blijft leesbaar in de cel</em></span></label>
+    <div class="hint" style="margin-top:10px">Afdrukken gaat liggend, passend op de paginabreedte, met de kopregel op elke pagina.</div>`;
+}
+
+/* ---------------- controle ---------------- */
+function checkItems(b) {
+  const it = [], m = b.meta;
+  const ok = (t, u = "", k = "") => it.push(`<li class="ok"><span class="dci">${IK.vink(9)}</span><span>${t}${u ? `<em>${u}</em>` : ""}${k}</span></li>`);
+  const let_ = (t, u = "", k = "") => it.push(`<li class="let"><span class="dci">!</span><span>${t}${u ? `<em>${u}</em>` : ""}${k}</span></li>`);
+  const knop = (doe, l) => `<button class="mini" data-doe="${esc(doe)}">${l}</button>`;
+  const kn = (k) => `‘${esc(k.naam || k.origineel)}’`;
+  ok(`Gelezen als ${esc(CODNAAM[b.codering] || b.codering)}, gescheiden door ${esc(SCHNAAM[m.scheiding] || m.scheiding)}`, m.scheidingAuto ? " — automatisch herkend" : "");
+  if (m.schema) ok("SharePoint-schemaregel overgeslagen");
+  if (m.sepRegel) ok("Regel ‘sep=’ gebruikt en overgeslagen");
+  if (m.overgeslagen) ok(`${m.overgeslagen} regel${m.overgeslagen === 1 ? "" : "s"} bovenaan overgeslagen`);
+  if (b.hersteld) ok(`${nl(b.hersteld)} verminkte tekens hersteld`, " — zoals Ã« dat ë wordt", knop("herstel-uit", "Niet doen"));
+  else if (!b.lees.herstel && b.herstelbaar) let_(`${nl(b.herstelbaar)} verminkte tekens niet hersteld`, "", knop("herstel-aan", "Herstellen"));
+  if (m.legeRegels) ok(`${nl(m.legeRegels)} lege regel${m.legeRegels === 1 ? "" : "s"} overgeslagen`);
+  if (m.meer) let_(`${nl(m.meer)} regel${m.meer === 1 ? " heeft" : "s hebben"} meer velden dan de kopregel`, ` — de rest staat in extra kolommen (rij ${m.meerRijen.join(", ")}${m.meer > m.meerRijen.length ? ", …" : ""})`);
+  const aan = b.kolommen.filter((k) => k.aan);
+  const tel = {};
+  aan.forEach((k) => { if (k.type !== "tekst") tel[k.type] = (tel[k.type] || 0) + 1; });
+  const delen = Object.entries(tel).map(([t, n]) => `${n} ${TYPEMEERV[t][n === 1 ? 0 : 1]}`);
+  if (delen.length) ok(`Herkend als Excel-waarde: ${delen.join(", ")}`);
+  let afw = 0;
+  for (const k of aan) {
+    const st = KERN.stats(k, b.rijen);
+    if (st.fout) {
+      if (++afw <= 6) let_(`${kn(k)}: ${nl(st.fout)} waarde${st.fout === 1 ? " past" : "n passen"} niet bij ${TYPEMAP[k.type].l.toLowerCase()}`,
+        ` — blijf${st.fout === 1 ? "t" : "en"} tekst, zoals ‘${esc(st.fouten[0].w.slice(0, 40))}’`, knop("kol:" + k.bron, "Bekijken"));
+    }
+    if (st.aangepast) {
+      const a = st.aanpassingen[0];
+      let_(`${kn(k)}: ${nl(st.aangepast)} percentage${st.aangepast === 1 ? "" : "s"} boven 100% gedeeld door 100`,
+        ` — ${esc(a.w)} wordt ${esc(KERN.toon({ s: KERN.S.pct2, v: a.v }))}`, knop("pct:" + k.bron, "Niet doen"));
+    }
+    if (k.type === "tekst" && k.info.reden === "voorloopnullen") ok(`${kn(k)} blijft tekst`, " — door voorloopnullen zoals in dossiernummers");
+    if (k.html && k.info.html) ok(`${kn(k)}: HTML-opmaak omgezet naar gewone tekst`);
+    if (k.spIds && k.info.spIds) ok(`${kn(k)}: SharePoint-nummers (12;#) weggehaald`);
+    if (st.lang) let_(`${kn(k)}: ${nl(st.lang)} cel${st.lang === 1 ? "" : "len"} ingekort`, " — Excel past maximaal 32.767 tekens in een cel");
+  }
+  if (afw > 6) let_(`Nog ${afw - 6} kolommen met waarden die niet passen`, " — te zien bij Kolommen");
+  const leeg = aan.filter((k) => !k.info.gevuld);
+  if (leeg.length) let_(`${leeg.length} kolom${leeg.length === 1 ? " is" : "men zijn"} helemaal leeg`, ` — ${leeg.slice(0, 3).map(kn).join(", ")}${leeg.length > 3 ? ", …" : ""}`, knop("leeg-weg", "Weglaten"));
+  const namen = new Map();
+  aan.forEach((k) => { const n = (k.naam || k.origineel).trim().toLowerCase(); namen.set(n, (namen.get(n) || 0) + 1); });
+  const dubbel = [...namen].filter(([, n]) => n > 1).map(([x]) => x);
+  if (dubbel.length) let_(`Dubbele kolomnaam: ${dubbel.slice(0, 3).map((x) => `‘${esc(x)}’`).join(", ")}`, " — in Excel krijgt de tweede ‘(2)’ erachter");
+  if (b.rijen.length > KERN.MAX_RIJEN) let_(`${nl(b.rijen.length)} rijen past niet op één blad`, ` — wordt verdeeld over ${Math.ceil(b.rijen.length / KERN.MAX_RIJEN)} bladen`);
+  if (b.profiel) ok("Je kolominstellingen van de vorige keer zijn toegepast", " — deze export heeft dezelfde kolommen", knop("vergeet", "Vergeten"));
+  return it.join("");
+}
+
+function tekenInfo() {
+  const b = actief();
+  $("#pInfo").innerHTML = `<div class="datakop"><div><h2>${esc(b.naam)}</h2>
+      <div class="onder"><b class="tabnum">${nl(b.rijen.length)}</b> rijen · ${b.kolommen.length} kolommen · ${grootte(b.grootte)}</div></div></div>
+    <div class="datacheck"><ul>${checkItems(b)}</ul></div>`;
+}
+
+/* ---------------- kolommen ---------------- */
+function voorbeelden(b, k, n = 3) {
+  const ctx = KERN.context(k, b.rijen, INST), uit = [], gezien = new Set();
+  for (let i = 0; i < b.rijen.length && uit.length < n; i++) {
+    const c = KERN.celUit(b.rijen[i][k.bron], k, ctx);
+    if (!c) continue;
+    const t = KERN.toon(c, INST).replace(/\n+/g, " ↵ ");
+    if (gezien.has(t)) continue;
+    gezien.add(t); uit.push({ t, fout: c.fout });
+  }
+  return uit;
+}
+
+function kolRij(b, k, idx, letter) {
+  const st = KERN.stats(k, b.rijen);
+  const p = k.info.n ? Math.round(k.info.gevuld / k.info.n * 100) : 0;
+  const vbs = voorbeelden(b, k);
+  const extra = [];
+  if (st.fout) extra.push(`<span class="foutregel">${nl(st.fout)} ${st.fout === 1 ? "waarde blijft" : "waarden blijven"} tekst: ${st.fouten.slice(0, 3).map((f) => `‘${esc(f.w.slice(0, 30))}’ <span class="uitleg">(rij ${f.rij})</span>`).join(", ")}${st.fout > 3 ? ", …" : ""}</span>`);
+  const wissel = (aan, doe, label, titel) => `<button class="wissel${aan ? " aan" : ""}" data-doe="${doe}" title="${esc(titel)}" aria-pressed="${aan}"><span class="vakje">${aan ? IK.vink(8) : ""}</span>${label}</button>`;
+  if (k.type === "percentage" && (k.std.pctDelen || k.pctDelen)) extra.push(wissel(k.pctDelen, "pctwissel", `Boven 100% delen door 100${k.pctDelen && st.aangepast ? ` (${nl(st.aangepast)}×)` : ""}`, "Voor percentages die 100× te groot zijn opgeslagen, zoals 2500% voor 25%"));
+  if (k.info.html) extra.push(wissel(k.html, "htmlwissel", "HTML-opmaak weghalen", "Opmaak uit SharePoint omzetten naar gewone tekst"));
+  if (k.info.spIds) extra.push(wissel(k.spIds, "spwissel", "Nummers (12;#) weghalen", "SharePoint zet een nummer voor namen in opzoekvelden"));
+  if (k.type === "tekst" && k.info.reden === "voorloopnullen" && k.auto === "tekst") extra.push(`<span class="uitleg">Blijft tekst vanwege voorloopnullen</span>`);
+  if (k.type !== k.auto) extra.push(`<span class="uitleg">Automatisch: ${TYPEMAP[k.auto].l.toLowerCase()}</span><button class="mini" data-doe="type-auto">Terugzetten</button>`);
+  return `<div class="kolrij${k.aan ? "" : " uit"}" data-k="${idx}">
+    <span class="greep" title="Verslepen om de volgorde te wijzigen" aria-hidden="true">⋮⋮</span>
+    <label class="kolaan" title="${k.aan ? "Meenemen naar Excel" : "Weggelaten"}"><input type="checkbox" data-aan ${k.aan ? "checked" : ""} aria-label="${esc(k.origineel)} meenemen"></label>
+    <span class="letter" title="Kolom in Excel">${k.aan ? letter : "–"}</span>
+    <div class="kolnaam"><input class="invoer" data-naam value="${esc(k.naam)}" placeholder="${esc(k.origineel)}" spellcheck="false" aria-label="Naam van kolom ${esc(k.origineel)}">
+      ${k.naam !== k.origineel ? `<div class="was">was ‘${esc(k.origineel)}’</div>` : ""}</div>
+    <div class="koltype">${typeBadge(k.type)}<select data-type class="${k.type !== k.auto ? "anders" : ""}" aria-label="Type">${KERN.TYPES.map((t) =>
+      `<option value="${t.w}" ${t.w === k.type ? "selected" : ""}>${t.l}${t.w === k.auto ? " (auto)" : ""}</option>`).join("")}</select></div>
+    <div class="kolgevuld" title="${nl(k.info.gevuld)} van ${nl(k.info.n)} cellen gevuld"><span class="mb"><i style="width:${p}%"></i></span><span>${p}%</span></div>
+    <div class="kolvb">${vbs.length ? vbs.map((v) => `<span class="vb"${v.fout ? ' style="background:#FFF1D6;color:#8A4B00"' : ""} title="${esc(v.t)}">${esc(v.t)}</span>`).join("") : `<span class="vb leeg">leeg</span>`}</div>
+    ${extra.length ? `<div class="kolextra">${extra.join("")}</div>` : ""}
+  </div>`;
+}
+
+function tekenKolommen() {
+  const b = actief(), q = UI.zoek.trim().toLowerCase();
+  let letterNr = 0;
+  const letters = b.kolommen.map((k) => (k.aan ? kolLetter(letterNr++) : ""));
+  const rijen = b.kolommen.map((k, i) => (!q || k.naam.toLowerCase().includes(q) || k.origineel.toLowerCase().includes(q)) ? kolRij(b, k, i, letters[i]) : "").join("");
+  $("#kolVak").innerHTML = `<div class="kolrij kolkop"><span></span><span></span><span></span><span>Kolom</span><span>Type</span><span class="kolgevuld">Gevuld</span><span class="kolvb">Zo komt het in Excel</span></div>`
+    + (rijen || `<div class="leegvak">Geen kolom gevonden met ‘${esc(UI.zoek)}’</div>`);
+  const nAan = b.kolommen.filter((k) => k.aan).length;
+  $("#tel").textContent = `${nAan} van ${b.kolommen.length} kolommen naar Excel`;
+}
+function kolLetter(n) { let s = ""; n++; while (n) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+
+/* Na een wijziging: alles wat ervan afhangt opnieuw tekenen, maar het
+   kolommenoverzicht alleen als dat nodig is (dan blijft de focus staan). */
+function naKolom(b, { lijst = true } = {}) {
+  onthoud(b);
+  if (lijst && UI.weergave === "kolommen") { const top = $("#kolVak").scrollTop; tekenKolommen(); $("#kolVak").scrollTop = top; }
+  if (UI.weergave === "voorbeeld") tekenVoorbeeld(true);
+  tekenInfo(); tekenBestanden(); tekenVoet();
+}
+
+$("#kolVak").addEventListener("change", (e) => {
+  const b = actief(), rij = e.target.closest("[data-k]"); if (!b || !rij) return;
+  const k = b.kolommen[+rij.dataset.k];
+  if (e.target.matches("[data-aan]")) { k.aan = e.target.checked; naKolom(b); }
+  else if (e.target.matches("[data-type]")) { k.type = e.target.value; naKolom(b); melding(`‘${k.naam}’ is nu ${TYPEMAP[k.type].l.toLowerCase()}`); }
+  else if (e.target.matches("[data-naam]")) { if (!e.target.value.trim()) { k.naam = k.origineel; } naKolom(b); }
+});
+$("#kolVak").addEventListener("input", (e) => {
+  if (!e.target.matches("[data-naam]")) return;
+  const b = actief(), k = b.kolommen[+e.target.closest("[data-k]").dataset.k];
+  k.naam = e.target.value.trim() ? e.target.value : k.origineel;
+  onthoud(b); tekenVoet();
+});
+$("#kolVak").addEventListener("keydown", (e) => {
+  if (e.target.matches("[data-naam]") && e.key === "Enter") { e.preventDefault(); const alle = $$("#kolVak [data-naam]"); const j = alle.indexOf(e.target); (alle[j + 1] || e.target).focus(); alle[j + 1]?.select(); return; }
+  if (e.altKey && e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+    const rij = e.target.closest("[data-k]"); if (!rij) return;
+    e.preventDefault();
+    const van = +rij.dataset.k, naar = van + (e.key === "ArrowDown" ? 1 : -1);
+    if (verplaats(van, naar)) $(`#kolVak [data-k="${naar}"] [data-naam]`)?.focus();
+  }
+});
+$("#kolVak").addEventListener("click", (e) => {
+  const d = e.target.closest("[data-doe]"); if (!d) return;
+  const b = actief(), k = b.kolommen[+d.closest("[data-k]").dataset.k];
+  switch (d.dataset.doe) {
+    case "pctwissel": k.pctDelen = !k.pctDelen; break;
+    case "htmlwissel": k.html = !k.html; break;
+    case "spwissel": k.spIds = !k.spIds; break;
+    case "type-auto": k.type = k.auto; break;
+    default: return;
+  }
+  naKolom(b);
+});
+
+/* volgorde: slepen of Alt+Shift+↑↓ */
+function verplaats(van, naar) {
+  const b = actief();
+  if (naar < 0 || naar >= b.kolommen.length || van === naar) return false;
+  const [k] = b.kolommen.splice(van, 1);
+  b.kolommen.splice(naar, 0, k);
+  naKolom(b);
+  return true;
+}
+let _sleep = null;
+/* Alleen de greep maakt een rij versleepbaar, zodat tekst selecteren in het naamveld gewoon werkt. */
+$("#kolVak").addEventListener("mousedown", (e) => { const g = e.target.closest(".greep"); if (g) g.closest(".kolrij").draggable = true; });
+document.addEventListener("mouseup", () => { if (_sleep === null) $$("#kolVak .kolrij[draggable]").forEach((r) => r.removeAttribute("draggable")); });
+$("#kolVak").addEventListener("dragstart", (e) => {
+  const rij = e.target.closest && e.target.closest(".kolrij[data-k]");
+  if (!rij || !rij.draggable) return;
+  _sleep = +rij.dataset.k; rij.classList.add("sleept");
+  e.dataTransfer.effectAllowed = "move";
+  try { e.dataTransfer.setData("text/plain", "kolom"); } catch (x) {}
+});
+$("#kolVak").addEventListener("dragover", (e) => {
+  if (_sleep === null) return;
+  const rij = e.target.closest(".kolrij[data-k]"); if (!rij) return;
+  e.preventDefault();
+  const r = rij.getBoundingClientRect(), onder = e.clientY > r.top + r.height / 2;
+  $$("#kolVak .kolrij").forEach((x) => x.classList.remove("doel-boven", "doel-onder"));
+  rij.classList.add(onder ? "doel-onder" : "doel-boven");
+});
+$("#kolVak").addEventListener("drop", (e) => {
+  if (_sleep === null) return;
+  const rij = e.target.closest(".kolrij[data-k]"); if (!rij) return;
+  e.preventDefault(); e.stopPropagation();
+  let naar = +rij.dataset.k + (rij.classList.contains("doel-onder") ? 1 : 0);
+  if (naar > _sleep) naar--;
+  const van = _sleep; _sleep = null;
+  verplaats(van, naar);
+});
+$("#kolVak").addEventListener("dragend", () => { _sleep = null; $$("#kolVak .kolrij").forEach((x) => { x.classList.remove("sleept", "doel-boven", "doel-onder"); x.removeAttribute("draggable"); }); });
+
+/* ---------------- voorbeeld ---------------- */
+const BLOK = 150;
+function tekenVoorbeeld(behoudScroll) {
+  const b = actief(), vak = $("#voorVak");
+  const top = vak.scrollTop, links = vak.scrollLeft;
+  UI.kols = b.kolommen.filter((k) => k.aan);
+  UI.ctx = UI.kols.map((k) => KERN.context(k, b.rijen, INST));
+  const q = UI.zoek.trim().toLowerCase();
+  UI.rijen = [];
+  for (let i = 0; i < b.rijen.length; i++) {
+    if (!q || UI.kols.some((k) => String(b.rijen[i][k.bron] ?? "").toLowerCase().includes(q))) UI.rijen.push(i);
+  }
+  const namen = UI.kols.map((k) => k.naam.trim() || k.origineel);
+  $("#voorTabel thead").innerHTML = UI.kols.length ? `<tr><th class="nr">#</th>${UI.kols.map((k, j) =>
+    `<th data-k="${b.kolommen.indexOf(k)}" title="Klik om het type te kiezen"><span class="xl">${kolLetter(j)}</span>${typeBadge(k.type)}${esc(namen[j])}</th>`).join("")}</tr>` : "";
+  $("#voorTabel tbody").innerHTML = "";
+  UI.getoond = 0;
+  if (!UI.kols.length) { $("#meerLaden").textContent = "Alle kolommen zijn weggelaten."; $("#tel").textContent = ""; return; }
+  meerRijen(behoudScroll ? Math.max(BLOK, Math.ceil((top + vak.clientHeight) / 26) + 20) : BLOK);
+  if (behoudScroll) { vak.scrollTop = top; vak.scrollLeft = links; } else { vak.scrollTop = 0; }
+}
+function meerRijen(aantal = BLOK) {
+  const b = actief();
+  const van = UI.getoond, tot = Math.min(UI.rijen.length, van + aantal);
+  const html = [];
+  for (let x = van; x < tot; x++) {
+    const i = UI.rijen[x], r = b.rijen[i];
+    let rij = `<tr><td class="nr">${i + 1}</td>`;
+    for (let j = 0; j < UI.kols.length; j++) {
+      const k = UI.kols[j], c = KERN.celUit(r[k.bron], k, UI.ctx[j]);
+      if (!c) { rij += "<td></td>"; continue; }
+      const t = KERN.toon(c, INST);
+      const kl = c.fout ? "fout" : [!c.str ? "getal" : "", c.aangepast ? "aangepast" : ""].join(" ").trim();
+      const titel = c.fout ? `Geen ${TYPEMAP[k.type].l.toLowerCase()}; blijft tekst` : c.aangepast ? `${c.bron} → ${t}` : t;
+      rij += `<td${kl ? ` class="${kl}"` : ""} title="${esc(titel)}">${esc(t).replace(/\n/g, '<span class="terug">↵</span>')}</td>`;
+    }
+    html.push(rij + "</tr>");
+  }
+  $("#voorTabel tbody").insertAdjacentHTML("beforeend", html.join(""));
+  UI.getoond = tot;
+  const n = UI.rijen.length;
+  $("#tel").textContent = n ? `${nl(UI.getoond)} van ${nl(n)} rijen${UI.zoek ? " (gefilterd)" : ""}` : "Geen rijen gevonden";
+  $("#meerLaden").textContent = UI.getoond < n ? "Scroll verder voor meer rijen" : n > BLOK ? "Einde van de data" : "";
+}
+$("#voorVak").addEventListener("scroll", (e) => {
+  const el = e.currentTarget;
+  if (UI.getoond < UI.rijen.length && el.scrollTop + el.clientHeight > el.scrollHeight - 500) meerRijen();
+});
+
+/* Klik op een kolomkop: type kiezen of kolom weglaten. */
+$("#voorTabel").addEventListener("click", (e) => {
+  const th = e.target.closest("th[data-k]"); if (!th) return;
+  const b = actief(), idx = +th.dataset.k, k = b.kolommen[idx];
+  const pop = openPop(th, `<div class="popkop">${esc(k.naam)}</div>`
+    + KERN.TYPES.map((t) => `<button class="popkeuze${t.w === k.type ? " aan" : ""}" data-ptype="${t.w}">${typeBadge(t.w)}${t.l}${t.w === k.auto ? '<span class="bij">automatisch</span>' : ""}</button>`).join("")
+    + `<div class="popvoet"><button class="mini" data-pdoe="hernoem">Hernoemen</button><button class="mini" data-pdoe="uit">Kolom weglaten</button></div>`);
+  if (!pop) return;
+  pop.onclick = (ev) => {
+    const t = ev.target.closest("[data-ptype]"), d = ev.target.closest("[data-pdoe]");
+    if (t) { k.type = t.dataset.ptype; sluitPop(); naKolom(b, { lijst: false }); }
+    else if (d && d.dataset.pdoe === "uit") { k.aan = false; sluitPop(); naKolom(b, { lijst: false }); melding(`‘${k.naam}’ weggelaten`); }
+    else if (d && d.dataset.pdoe === "hernoem") { sluitPop(); naarKolom(idx, true); }
+  };
+});
+
+function naarKolom(idx, focus) {
+  zetWeergave("kolommen");
+  if (UI.zoek) { UI.zoek = ""; $("#zoek").value = ""; tekenKolommen(); }
+  const rij = $(`#kolVak [data-k="${idx}"]`); if (!rij) return;
+  rij.scrollIntoView({ block: "center" });
+  rij.classList.remove("licht"); void rij.offsetWidth; rij.classList.add("licht");
+  if (focus) { const i = $("[data-naam]", rij); i.focus(); i.select(); }
+}
+
+/* ---------------- weergave en zoeken ---------------- */
+function zetWeergave(w) {
+  if (UI.weergave === w) return;
+  UI.weergave = w; tekenWeergave();
+}
+function tekenWeergave() {
+  const kol = UI.weergave === "kolommen";
+  $$("#weergave button").forEach((x) => x.classList.toggle("aan", x.dataset.w === UI.weergave));
+  $("#kolVak").classList.toggle("verborgen", !kol);
+  $("#voorVak").classList.toggle("verborgen", kol);
+  $("#kolKnoppen").classList.toggle("verborgen", !kol);
+  $("#zoek").placeholder = kol ? "Kolom zoeken…" : "Zoeken in de rijen…";
+  if (kol) tekenKolommen(); else tekenVoorbeeld();
+}
+$("#weergave").addEventListener("click", (e) => { const b = e.target.closest("[data-w]"); if (b) zetWeergave(b.dataset.w); });
+let _zoekTimer = null;
+$("#zoek").addEventListener("input", (e) => { clearTimeout(_zoekTimer); _zoekTimer = setTimeout(() => { UI.zoek = e.target.value; tekenWeergave(); }, 180); });
+$("#kolKnoppen").addEventListener("click", (e) => {
+  const d = e.target.closest("[data-doe]"); if (!d) return;
+  const b = actief();
+  if (d.dataset.doe === "alles-aan") b.kolommen.forEach((k) => (k.aan = true));
+  if (d.dataset.doe === "alles-uit") b.kolommen.forEach((k) => (k.aan = false));
+  if (d.dataset.doe === "automatisch") { delete PROFIELEN[b.sig]; bewaarProfielen(); verwerk(b, { kol: {} }); teken(); melding("Alles terug naar automatisch"); return; }
+  naKolom(b);
+});
+
+/* knoppen in de controlelijst */
+$("#pInfo").addEventListener("click", (e) => {
+  const d = e.target.closest("[data-doe]"); if (!d) return;
+  const b = actief(), doe = d.dataset.doe;
+  const kolVan = (s) => b.kolommen.findIndex((k) => k.bron === +s.split(":")[1]);
+  if (doe === "herstel-uit" || doe === "herstel-aan") { b.lees.herstel = doe === "herstel-aan"; verwerk(b, profielVan(b)); teken(); return; }
+  if (doe === "vergeet") { delete PROFIELEN[b.sig]; bewaarProfielen(); verwerk(b, { kol: {} }); teken(); melding("Instellingen vergeten; alles weer automatisch"); return; }
+  if (doe === "leeg-weg") { b.kolommen.forEach((k) => { if (!k.info.gevuld) k.aan = false; }); naKolom(b); melding("Lege kolommen weggelaten"); return; }
+  if (doe.startsWith("kol:")) { naarKolom(kolVan(doe)); return; }
+  if (doe.startsWith("pct:")) { const k = b.kolommen[kolVan(doe)]; k.pctDelen = false; naKolom(b); melding(`‘${k.naam}’: percentages blijven zoals ze zijn`); }
+});
+
+/* ---------------- zijpanelen ---------------- */
+$("#pBestanden").addEventListener("click", (e) => {
+  if (e.target.closest('[data-doe="kies"]')) { $("#bestandInvoer").click(); return; }
+  const weg = e.target.closest("[data-weg]");
+  if (weg) {
+    const i = +weg.dataset.weg, naam = BESTANDEN[i].naam;
+    BESTANDEN.splice(i, 1);
+    if (ACTIEF >= i && ACTIEF > 0) ACTIEF--;
+    teken(); melding(`${naam} gesloten`);
+    return;
+  }
+  const li = e.target.closest("[data-b]");
+  if (li && +li.dataset.b !== ACTIEF) { ACTIEF = +li.dataset.b; UI.zoek = ""; $("#zoek").value = ""; teken(); }
+});
+
+function zetLees(sl, w) {
+  const b = actief();
+  if (String(b.lees[sl]) === String(w)) return;
+  b.lees[sl] = w;
+  try { verwerk(b, profielVan(b)); } catch (e) { melding("Opnieuw inlezen mislukt: " + e.message, "mis"); return; }
+  teken();
+  melding(`Opnieuw ingelezen: ${nl(b.rijen.length)} rijen, ${b.kolommen.length} kolommen`);
+}
+$("#pLees").addEventListener("click", (e) => { const k = e.target.closest("[data-lees] button"); if (k) zetLees(k.parentElement.dataset.lees, k.dataset.w); });
+$("#pLees").addEventListener("change", (e) => {
+  const el = e.target; if (!el.dataset || !el.dataset.lees) return;
+  zetLees(el.dataset.lees, el.type === "checkbox" ? el.checked : el.type === "number" ? Math.max(0, parseInt(el.value, 10) || 0) : el.value);
+});
+
+function zetInst(sl, w) {
+  INST[sl] = sl === "vastKol" ? +w : w;
+  bewaarInst();
+  tekenExcel(); tekenVoet();
+  if (sl === "datum" || sl === "meerdere") { if (UI.weergave === "voorbeeld") tekenVoorbeeld(true); else tekenKolommen(); }
+}
+$("#pExcel").addEventListener("click", (e) => { const k = e.target.closest("[data-inst] button"); if (k) zetInst(k.parentElement.dataset.inst, k.dataset.w); });
+$("#pExcel").addEventListener("change", (e) => { const el = e.target; if (el.dataset && el.dataset.inst) zetInst(el.dataset.inst, el.checked); });
+$("#pExcel").addEventListener("input", (e) => {
+  if (e.target.matches("[data-bladnaam]")) actief().blad = e.target.value;
+  if (e.target.id === "bestandsnaam") UI.bestandsnaam = e.target.value;
+});
+
+/* ---------------- voetbalk ---------------- */
+function tekenVoet() {
+  const md = modus(), n = BESTANDEN.length;
+  const rijen = BESTANDEN.reduce((s, b) => s + b.rijen.length, 0);
+  const b = actief(), aan = b.kolommen.filter((k) => k.aan).length;
+  $("#samen").innerHTML = n === 1
+    ? `<b>${nl(b.rijen.length)}</b> rijen · <b>${aan}</b> van ${b.kolommen.length} kolommen naar Excel`
+    : md === "samen" ? `<b>${n}</b> bestanden · <b>${nl(rijen)}</b> rijen onder elkaar op één blad`
+    : md === "apart" ? `<b>${n}</b> losse werkmappen in één zip · <b>${nl(rijen)}</b> rijen`
+    : `<b>${n}</b> bestanden · één werkmap met ${n} bladen · <b>${nl(rijen)}</b> rijen`;
+  $("#downloadTekst").textContent = md === "apart" ? "Download .zip" : "Download .xlsx";
+  $("#knopDownload").disabled = UI.bezig || BESTANDEN.every((x) => !x.kolommen.some((k) => k.aan));
+}
+
+/* ---------------- maken en downloaden ---------------- */
+const veiligeNaam = (s) => String(s).replace(/[\\\/:*?"<>|\x00-\x1F]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 150) || "export";
+function bewaarBestand(bytes, naam, type) {
+  const url = URL.createObjectURL(new Blob([bytes], { type }));
+  const a = document.createElement("a"); a.href = url; a.download = naam;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+async function download() {
+  if (!BESTANDEN.length || UI.bezig) return;
+  UI.bezig = true; tekenVoet();
+  const tekst = $("#downloadTekst"), oud = tekst.textContent;
+  tekst.textContent = "Bezig…";
+  await rust();
+  try {
+    const md = modus(), o = { ...INST };
+    const bladVan = (b) => KERN.naarBlad(b, b.blad.trim() || b.basis, o);
+    if (md === "apart") {
+      const files = {}, namen = new Set();
+      for (const b of BESTANDEN) {
+        let n = veiligeNaam(b.basis), i = 2; while (namen.has(n.toLowerCase())) n = `${veiligeNaam(b.basis)} (${i++})`; namen.add(n.toLowerCase());
+        files[n + ".xlsx"] = await KERN.maakWerkmap([bladVan(b)], { ...o, titel: b.basis });
+      }
+      const naam = `CSV naar Excel ${new Date().toISOString().slice(0, 10)}.zip`;
+      bewaarBestand(await KERN.zip(files, false), naam, "application/zip");
+      melding(`${naam} gedownload`, "goed");
+    } else {
+      const naam = veiligeNaam(UI.bestandsnaam || standaardNaam());
+      let bladen;
+      if (md === "samen") bladen = [KERN.samenvoegen(BESTANDEN.map((b) => ({ ...bladVan(b), bron: b.naam })), naam.slice(0, 31))];
+      else bladen = BESTANDEN.map(bladVan);
+      const bytes = await KERN.maakWerkmap(bladen, { ...o, titel: naam });
+      bewaarBestand(bytes, naam + ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      melding(`${naam}.xlsx gedownload`, "goed");
+    }
+  } catch (e) { console.error(e); melding("Excel maken mislukt: " + e.message, "mis"); }
+  tekst.textContent = oud; UI.bezig = false; tekenVoet();
+}
+$("#knopDownload").addEventListener("click", download);
+
+$("#knopKopieer").addEventListener("click", async () => {
+  const b = actief(); if (!b) return;
+  const kols = b.kolommen.filter((k) => k.aan);
+  const ctx = kols.map((k) => KERN.context(k, b.rijen, INST));
+  const regels = [kols.map((k) => KERN.klembordWaarde({ str: true, v: k.naam.trim() || k.origineel }, INST)).join("\t")];
+  for (const r of b.rijen) regels.push(kols.map((k, j) => KERN.klembordWaarde(KERN.celUit(r[k.bron], k, ctx[j]), INST)).join("\t"));
+  try { await navigator.clipboard.writeText(regels.join("\r\n")); melding(`${nl(b.rijen.length)} rijen gekopieerd; plak ze in Excel`, "goed"); }
+  catch (e) { melding("Kopiëren is niet toegestaan in deze browser", "mis"); }
+});
+
+/* ---------------- zwevend keuzevenster ---------------- */
+function openPop(knop, html) {
+  const pop = $("#pop");
+  if (UI.pop && UI.pop.knop === knop) { sluitPop(); return null; }
+  sluitPop();
+  pop.innerHTML = html; pop.classList.remove("verborgen");
+  UI.pop = { knop };
+  const r = knop.getBoundingClientRect(), bw = pop.offsetWidth, bh = pop.offsetHeight;
+  pop.style.left = Math.max(10, Math.min(r.left, window.innerWidth - bw - 10)) + "px";
+  pop.style.top = Math.max(10, Math.min(r.bottom + 6, window.innerHeight - bh - 10)) + "px";
+  return pop;
+}
+function sluitPop() { const pop = $("#pop"); pop.classList.add("verborgen"); pop.innerHTML = ""; pop.onclick = null; UI.pop = null; }
+document.addEventListener("mousedown", (e) => { if (UI.pop && !$("#pop").contains(e.target) && !UI.pop.knop.contains(e.target)) sluitPop(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && UI.pop) sluitPop(); });
+window.addEventListener("resize", sluitPop);
+$("#voorVak").addEventListener("scroll", () => { if (UI.pop) sluitPop(); });
+
+/* ---------------- bestanden aanreiken ---------------- */
+$("#bestandInvoer").addEventListener("change", (e) => { if (e.target.files.length) voegToe(e.target.files); e.target.value = ""; });
+$("#startZone").addEventListener("click", (e) => { if (!e.target.closest("#knopKies")) $("#bestandInvoer").click(); });
+$("#startZone").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#bestandInvoer").click(); } });
+$("#knopKies").addEventListener("click", () => $("#bestandInvoer").click());
+$("#knopToevoegen").addEventListener("click", () => $("#bestandInvoer").click());
+$("#knopMerk").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+$("#knopOpnieuw").addEventListener("click", () => {
+  if (BESTANDEN.length && !confirm(`${BESTANDEN.length === 1 ? "Het bestand" : `Alle ${BESTANDEN.length} bestanden`} sluiten en opnieuw beginnen?\n\nJe kolominstellingen blijven onthouden.`)) return;
+  BESTANDEN = []; ACTIEF = 0; UI.bestandsnaam = ""; UI.zoek = ""; $("#zoek").value = "";
+  teken(); melding("Opnieuw begonnen");
+});
+
+/* Slepen over de hele pagina */
+let _sleepTeller = 0;
+const heeftBestanden = (e) => e.dataTransfer && [...(e.dataTransfer.types || [])].includes("Files");
+document.addEventListener("dragenter", (e) => { if (!heeftBestanden(e)) return; e.preventDefault(); _sleepTeller++; toonSleep(true); });
+document.addEventListener("dragleave", (e) => { if (!heeftBestanden(e)) return; if (--_sleepTeller <= 0) { _sleepTeller = 0; toonSleep(false); } });
+document.addEventListener("dragover", (e) => { if (heeftBestanden(e)) e.preventDefault(); });
+document.addEventListener("drop", (e) => {
+  if (!heeftBestanden(e)) return;
+  e.preventDefault(); _sleepTeller = 0; toonSleep(false);
+  if (e.dataTransfer.files.length) voegToe(e.dataTransfer.files);
+});
+function toonSleep(aan) {
+  if (!BESTANDEN.length) { $("#startZone").classList.toggle("boven", aan); return; }
+  $("#sleepVlak").classList.toggle("verborgen", !aan);
+}
+
+/* Plakken: een tabel uit Excel, Teams of een e-mail wordt een bestand. */
+document.addEventListener("paste", (e) => {
+  if (e.target.closest && e.target.closest("input,textarea,select,[contenteditable]")) return;
+  const t = e.clipboardData && e.clipboardData.getData("text/plain");
+  if (!t || !/\r?\n./.test(t.trim()) || !/[\t;,|]/.test(t)) { if (t) melding("Plak een tabel met meerdere regels", "mis"); return; }
+  e.preventDefault();
+  const d = new Date();
+  nieuwBestand(`Geplakt ${String(d.getHours()).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}.csv`, new TextEncoder().encode(t).buffer);
+  teken();
+  melding(`Geplakt: ${nl(actief().rijen.length)} rijen`, "goed");
+});
+
+/* Sneltoetsen */
+document.addEventListener("keydown", (e) => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === "s" && BESTANDEN.length) { e.preventDefault(); download(); }
+  if (mod && e.key.toLowerCase() === "o") { e.preventDefault(); $("#bestandInvoer").click(); }
+});
+
+/* ---------------- start ---------------- */
+tekenLogos();
+laadOpslag();
+teken();
+</script>
+</body>
+</html>
